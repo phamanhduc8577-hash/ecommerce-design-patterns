@@ -1,0 +1,73 @@
+@startuml DomainModel
+skinparam classAttributeIconSize 0
+
+enum CustomerTier {
+  REGULAR
+  SILVER
+  GOLD
+  VIP
+}
+
+class Customer {
+  +id: string
+  +name: string
+  +email: string
+  +phone: string
+  +tier: CustomerTier
+}
+
+class Product {
+  +id: string
+  +name: string
+  +sku: string
+  +price: number
+  +stockQuantity: number
+  +category: string
+  +hasStock(quantity: number): boolean
+  +deductStock(quantity: number): void
+}
+
+class OrderItem {
+  +product: Product
+  +quantity: number
+  +unitPrice: number
+  +subtotal: number
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  SHIPPED
+}
+
+class ShippingAddress {
+  +recipientName: string
+  +phoneNumber: string
+  +street: string
+  +city: string
+  +postalCode?: string
+}
+
+class Order {
+  +orderId: string
+  +customer: Customer
+  +items: OrderItem[]
+  +shippingAddress: ShippingAddress
+  +withGiftWrap: boolean
+  +withInsurance: boolean
+  +specialNotes?: string
+  +status: OrderStatus
+  +paymentTransactionId?: string
+  +subtotal: number
+  +markAsPaid(transactionId: string): void
+}
+
+Customer "1" -- "0..*" Order : places
+Order "1" *-- "1..*" OrderItem : contains
+OrderItem "0..*" o-- "1" Product : references
+Customer ..> CustomerTier
+Order ..> OrderStatus
+Order ..> ShippingAddress
+
+@enduml

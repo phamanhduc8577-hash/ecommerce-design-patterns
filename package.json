@@ -1,0 +1,33 @@
+{
+  "name": "ecommerce-design-patterns",
+  "version": "1.0.0",
+  "description": "Tiểu luận cuối kỳ Mẫu thiết kế phần mềm: Hệ thống TMĐT áp dụng 6 Design Patterns và SOLID",
+  "main": "dist/demo-runner.js",
+  "scripts": {
+    "start": "ts-node src/demo-runner.ts",
+    "build": "tsc",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "design-patterns",
+    "solid",
+    "clean-architecture",
+    "ecommerce",
+    "typescript"
+  ],
+  "author": "Sinh Viên",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.12.7",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "docx": "^9.15.1"
+  }
+}
