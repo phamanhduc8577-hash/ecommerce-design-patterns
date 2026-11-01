@@ -98,5 +98,31 @@ describe('Unit Tests - Behavioral Patterns (Strategy & Observer)', () => {
       publisher.detach(smsObs.observerName);
       expect(publisher.getObserversCount()).toBe(0);
     });
+
+    test('Chịu lỗi (Fault-Tolerance): Một Observer lỗi không làm gián đoạn các Observer khác', async () => {
+      const publisher = new OrderEventPublisher();
+      const faultyObserver = {
+        observerName: 'Lỗi Third-Party Webhook',
+        update: () => {
+          throw new Error('Connection timeout to webhook endpoint');
+        }
+      };
+      const emailObs = new EmailNotificationObserver();
+
+      publisher.attach(faultyObserver);
+      publisher.attach(emailObs);
+
+      const results = await publisher.notify({
+        order,
+        event: 'ORDER_PAID',
+        timestamp: new Date()
+      });
+
+      expect(results.length).toBe(2);
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toContain('Connection timeout');
+      expect(results[1].success).toBe(true);
+      expect(emailObs.sentEmails.length).toBeGreaterThan(0);
+    });
   });
 });

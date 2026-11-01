@@ -61,6 +61,12 @@ describe('Unit Tests - Creational Patterns (Factory Method & Builder)', () => {
       expect(result.transactionId).toContain('COD-TXN');
     });
 
+    test('Factory Method Template operation ném lỗi khi số tiền <= 0', async () => {
+      const factory = new CODPaymentFactory();
+      await expect(factory.executePayment(0, 'ORD-INVALID')).rejects.toThrow('lớn hơn 0');
+      await expect(factory.executePayment(-1000, 'ORD-INVALID')).rejects.toThrow('lớn hơn 0');
+    });
+
     test('BankTransferPaymentFactory tạo ra đúng BankTransferPaymentProcessor', async () => {
       const factory = new BankTransferPaymentFactory();
       const processor = factory.createPaymentProcessor();

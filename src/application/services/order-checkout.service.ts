@@ -7,6 +7,7 @@ import { RegularCustomerDiscountStrategy } from '../../domain/patterns/behaviora
 import { PaymentProcessorFactory } from '../../domain/patterns/creational/factory/payment-processor.factory';
 import { OrderEventPublisher } from '../../domain/patterns/behavioral/observer/order-event.publisher';
 import { PaymentResult } from '../../domain/patterns/creational/factory/payment-processor.interface';
+import { ObserverNotificationResult } from '../../domain/patterns/behavioral/observer/order-observer.interface';
 
 export interface CheckoutResult {
   order: Order;
@@ -19,6 +20,7 @@ export interface CheckoutResult {
   totalBeforeDiscount: number;
   finalPayableAmount: number;
   paymentResult: PaymentResult;
+  observerResults: ObserverNotificationResult[];
 }
 
 /**
@@ -61,7 +63,7 @@ export class OrderCheckoutService {
     order.markAsPaid(paymentResult.transactionId);
 
     // 4. Áp dụng Behavioral Pattern: Observer để phát sự kiện sang kho hàng và dịch vụ thông báo
-    await this.eventPublisher.notify({
+    const observerResults = await this.eventPublisher.notify({
       order,
       event: 'ORDER_PAID',
       timestamp: new Date(),
@@ -78,7 +80,8 @@ export class OrderCheckoutService {
       },
       totalBeforeDiscount: subtotalWithServices,
       finalPayableAmount: finalAmount,
-      paymentResult
+      paymentResult,
+      observerResults
     };
   }
 }
