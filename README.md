@@ -34,18 +34,52 @@ npm install
 ```bash
 npm start
 ```
-*(Chương trình sẽ thực thi toàn bộ luồng mua sắm: Dựng đơn -> Bọc dịch vụ Decorator -> Áp mã Strategy VIP -> Thanh toán qua VNPay Adapter -> Tự động trừ kho & gửi Email/SMS qua Observer)*.
+*(Chương trình hỗ trợ 2 chế độ: Quick Scenario tự động hoặc Interactive Q&A Session chọn linh hoạt khách hàng, sản phẩm, chiến lược chiết khấu, cổng thanh toán và quan sát phản ứng hệ thống trực tiếp).*
 
 ### Bước 3: Chạy bộ kiểm thử tự động (Unit Test & Integration Test)
 ```bash
 npm test
+# hoặc đo tỷ lệ bao phủ code:
+npm run test:coverage
 ```
-*(100% 16 test cases bao phủ cả 6 patterns và integration flow đều vượt qua)*.
+
+### Bước 4: Chạy Benchmark đo lường hiệu năng & đánh giá bảo trì
+```bash
+npm run benchmark
+```
 
 ---
 
-## 3. TÀI LIỆU BÁO CÁO & VẤN ĐÁP
+## 3. CẤU TRÚC THƯ MỤC DỰ ÁN
+
+```text
+├── docs/                     # Toàn bộ tài liệu thiết kế chi tiết
+│   ├── architecture/         # Kiến trúc Clean Architecture & sơ đồ Domain
+│   ├── defense-qa/           # 12 câu hỏi vấn đáp điểm 10 kèm đáp án
+│   ├── patterns/             # 01 -> 06: Chi tiết từng Design Pattern & SOLID
+│   ├── testing/              # Báo cáo kết quả kiểm thử QA
+│   └── use-cases/            # Đặc tả ca sử dụng & sơ đồ Use Case
+├── plans/                    # Kế hoạch thực hiện 7 Phase & Báo cáo tiểu luận
+│   ├── 261101-0908-*/        # Nhật ký chi tiết từng Phase
+│   └── reports/              # Báo cáo chính thức (.docx và .md)
+├── scripts/                  # Các script tiện ích độc lập
+│   ├── benchmark.ts          # Đo lường hiệu năng (> 1 triệu ops/s)
+│   └── generate-report-docx.ts # Script xuất tự động file Word báo cáo
+├── src/                      # Mã nguồn chính (Clean Architecture)
+│   ├── application/          # Lớp Application (OrderCheckoutService)
+│   ├── domain/               # Lớp Domain (Entities & 6 Design Patterns)
+│   ├── infrastructure/       # Lớp Infrastructure (Third-party SDKs)
+│   └── demo-runner.ts        # Interactive CLI Runner phục vụ ngày vấn đáp
+└── tests/                    # Toàn bộ Test Suites (Jest)
+    ├── integration/          # Integration Test luồng Checkout toàn diện
+    └── unit/                 # Unit Test theo từng nhóm (Creational, Structural, Behavioral)
+```
+
+---
+
+## 4. TÀI LIỆU BÁO CÁO & VẤN ĐÁP
 - **File Báo cáo Word chính thức (.docx):** `plans/reports/BAO_CAO_TIEU_LUAN_MAU_THIET_KE_PM.docx` (đã căn lề, mục lục, bảng phân công nhiệm vụ, chuẩn APA/IEEE).
 - **Bộ 12 Câu hỏi - Trả lời Vấn đáp bảo vệ:** `docs/defense-qa/cau-hoi-van-dap.md`.
 - **Đặc tả Use Case & Sơ đồ PlantUML:** `docs/use-cases/`.
 - **Tài liệu Kiến trúc Clean Architecture:** `docs/architecture/clean-architecture.md`.
+- **Báo cáo Kiểm thử QA chi tiết:** `docs/testing/test-cases-and-results.md`.

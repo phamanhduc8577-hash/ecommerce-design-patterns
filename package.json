@@ -6,6 +6,7 @@
   "scripts": {
     "start": "ts-node src/demo-runner.ts",
     "benchmark": "ts-node scripts/benchmark.ts",
+    "generate:docx": "ts-node scripts/generate-report-docx.ts",
     "build": "tsc",
     "test": "jest",
     "test:coverage": "jest --coverage"
