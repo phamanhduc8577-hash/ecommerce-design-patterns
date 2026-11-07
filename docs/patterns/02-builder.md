@@ -38,6 +38,40 @@ Tách biệt quá trình xây dựng đối tượng `Order` phức tạp khỏi
 - `build(): Order`
 
 ### Sơ đồ lớp (Class Diagram):
+
+```mermaid
+classDiagram
+    class IOrderBuilder {
+        <<interface>>
+        +setCustomer(customer) this
+        +addItem(product, quantity) this
+        +setShippingAddress(address) this
+        +enableGiftWrap(enable) this
+        +enableInsurance(enable) this
+        +build() Order
+    }
+    class OrderBuilder {
+        -orderId: string
+        -items: OrderItem[]
+        -giftWrap: boolean
+        -insurance: boolean
+        +build() Order
+    }
+    class Order {
+        +orderId: string
+        +items: ReadonlyArray~OrderItem~
+        +withGiftWrap: boolean
+        +withInsurance: boolean
+        +status: OrderStatus
+        +markAsPaid(transactionId) void
+        +markAsCancelled(reason) void
+    }
+    IOrderBuilder <|.. OrderBuilder
+    OrderBuilder ..> Order : builds
+```
+
+<details><summary>Sơ đồ ASCII (bản dự phòng)</summary>
+
 ```
 +--------------------+            creates           +------------------------+
 |   OrderBuilder     | ---------------------------> |         Order          |
@@ -55,8 +89,55 @@ Tách biệt quá trình xây dựng đối tượng `Order` phức tạp khỏi
 +--------------------+                              +------------------------+
 ```
 
+</details>
+
+### Sơ đồ tuần tự (Sequence Diagram):
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Builder as OrderBuilder
+    participant Product
+    participant Order
+    Client->>Builder: new OrderBuilder(orderId)
+    Client->>Builder: setCustomer(customer)
+    Client->>Builder: addItem(product, quantity)
+    activate Builder
+    Builder->>Builder: tính tổng đã đặt (tích lũy)
+    Builder->>Product: hasStock(đã đặt + quantity)
+    Product-->>Builder: true / false
+    alt không đủ tồn kho
+        Builder-->>Client: throw Error
+    else đủ tồn kho
+        Builder-->>Client: this
+    end
+    deactivate Builder
+    Client->>Builder: setShippingAddress(address)
+    Client->>Builder: build()
+    activate Builder
+    Builder->>Builder: validate(customer, items, address)
+    Builder->>Order: new Order(...)
+    Order-->>Builder: order
+    Builder-->>Client: Order (PENDING)
+    deactivate Builder
+```
+
 ---
 
-## 3. CHỨNG MINH TUÂN THỦ NGUYÊN LÝ SOLID
-- **Single Responsibility Principle (SRP):** Trách nhiệm xây dựng và kiểm tra tính hợp lệ dữ liệu (validation) thuộc về `OrderBuilder`, trong khi `Order` chỉ chịu trách nhiệm duy trì trạng thái dữ liệu nội tại.
-- **Open/Closed Principle (OCP):** Khi thêm thuộc tính tùy chọn mới (ví dụ: mã giới thiệu `referralCode`), chỉ cần thêm method tương ứng vào Builder mà không làm xáo trộn các nơi đang gọi `build()` trước đó.
+## 3. SO SÁNH ƯU/NHƯỢC ĐIỂM SO VỚI THIẾT KẾ THÔNG THƯỜNG
+
+| Tiêu chí | Telescoping Constructor | Dùng Builder |
+| :--- | :--- | :--- |
+| Đọc hiểu | Chuỗi `true, false, undefined` khó đoán nghĩa | `.enableGiftWrap().enableInsurance()` tự mô tả |
+| Validation | Rải rác hoặc dồn hết vào constructor | Tập trung ở `build()`, có thể tích lũy theo từng bước |
+| Thêm thuộc tính | Phá vỡ chữ ký constructor, sửa mọi call site | Thêm 1 method, call site cũ không đổi |
+| **Nhược điểm của pattern** | — | Thêm 1 lớp Builder; với object đơn giản là thừa |
+
+---
+
+## 4. CHỨNG MINH TUÂN THỦ NGUYÊN LÝ SOLID
+- **Single Responsibility Principle (SRP):** Dựng + validate thuộc về `OrderBuilder`; `Order` chỉ giữ trạng thái dữ liệu nội tại.
+- **Open/Closed Principle (OCP):** Thêm thuộc tính tùy chọn mới (vd `referralCode`) chỉ cần thêm method vào Builder, không xáo trộn call site cũ.
+- **Liskov Substitution Principle (LSP):** `OrderBuilder` implement `IOrderBuilder`; mọi Builder tuân thủ hợp đồng này đều thay thế được nhau trong code client.
+- **Interface Segregation Principle (ISP):** `IOrderBuilder` chỉ khai báo các bước dựng đơn, không trộn logic thanh toán/thông báo.
+- **Dependency Inversion Principle (DIP):** Client lập trình theo `IOrderBuilder` (abstraction), không buộc phải phụ thuộc lớp `OrderBuilder` cụ thể.

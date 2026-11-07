@@ -1,14 +1,18 @@
+import {
+  IVNPayGateway,
+  VNPayGatewayParams,
+  VNPayGatewayResponse,
+  IMoMoGateway,
+  MoMoGatewayPayload,
+  MoMoGatewayResponse
+} from '../../domain/patterns/structural/adapter/payment-gateway.interfaces';
+
 /**
- * Thư viện SDK giả lập của bên thứ ba (VNPay Payment Gateway)
- * Có định dạng dữ liệu và tên hàm khác hoàn toàn với hệ thống của chúng ta.
+ * Thư viện SDK giả lập của bên thứ ba (VNPay Payment Gateway).
+ * Tầng Infrastructure `implements` port `IVNPayGateway` của tầng Domain (DIP: phụ thuộc vào trong).
  */
-export class ExternalVNPaySdk {
-  public doPaymentGateway(vnpParams: {
-    vnp_TmnCode: string;
-    vnp_Amount: number;
-    vnp_OrderInfo: string;
-    vnp_TxnRef: string;
-  }): { code: string; vnp_TransactionNo: string; message: string } {
+export class ExternalVNPaySdk implements IVNPayGateway {
+  public doPaymentGateway(vnpParams: VNPayGatewayParams): VNPayGatewayResponse {
     // Giả lập xử lý thanh toán phía máy chủ VNPay
     return {
       code: '00', // 00 là mã thành công của VNPay
@@ -19,15 +23,11 @@ export class ExternalVNPaySdk {
 }
 
 /**
- * Thư viện SDK giả lập của bên thứ ba (MoMo Wallet Gateway)
+ * Thư viện SDK giả lập của bên thứ ba (MoMo Wallet Gateway).
+ * Tầng Infrastructure `implements` port `IMoMoGateway` của tầng Domain (DIP).
  */
-export class ExternalMoMoSdk {
-  public executeMoMoTransaction(payload: {
-    partnerCode: string;
-    orderId: string;
-    amount: number;
-    orderInfo: string;
-  }): { status: number; transId: string; message: string } {
+export class ExternalMoMoSdk implements IMoMoGateway {
+  public executeMoMoTransaction(payload: MoMoGatewayPayload): MoMoGatewayResponse {
     // 0 là mã thành công của MoMo
     return {
       status: 0,

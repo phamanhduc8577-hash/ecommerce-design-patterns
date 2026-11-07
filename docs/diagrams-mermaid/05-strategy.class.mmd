@@ -1,0 +1,24 @@
+%% Class Diagram - Strategy Pattern
+classDiagram
+    class OrderCheckoutService {
+        +checkout(order, discountStrategy, paymentFactory) Promise~CheckoutResult~
+    }
+    class IDiscountStrategy {
+        <<interface>>
+        +strategyName: string
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    class RegularCustomerDiscountStrategy {
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    class VipMemberDiscountStrategy {
+        -discountPercent: number
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    class HolidayTieredDiscountStrategy {
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    OrderCheckoutService o--> IDiscountStrategy : uses
+    IDiscountStrategy <|.. RegularCustomerDiscountStrategy
+    IDiscountStrategy <|.. VipMemberDiscountStrategy
+    IDiscountStrategy <|.. HolidayTieredDiscountStrategy

@@ -1,0 +1,38 @@
+@startuml AdapterClass
+title Class Diagram - Adapter Pattern (DIP: Adapter phụ thuộc port Domain)
+
+interface IPaymentProcessor {
+  +paymentMethodName: string
+  +processPayment(amount, orderId): Promise<PaymentResult>
+}
+interface IVNPayGateway {
+  +doPaymentGateway(params): VNPayGatewayResponse
+}
+interface IMoMoGateway {
+  +executeMoMoTransaction(payload): MoMoGatewayResponse
+}
+
+class VNPayPaymentAdapter {
+  -vnpaySdk: IVNPayGateway
+  +processPayment(amount, orderId): Promise<PaymentResult>
+}
+class MoMoPaymentAdapter {
+  -momoSdk: IMoMoGateway
+  +processPayment(amount, orderId): Promise<PaymentResult>
+}
+
+class ExternalVNPaySdk {
+  +doPaymentGateway(params): VNPayGatewayResponse
+}
+class ExternalMoMoSdk {
+  +executeMoMoTransaction(payload): MoMoGatewayResponse
+}
+
+IPaymentProcessor <|.. VNPayPaymentAdapter
+IPaymentProcessor <|.. MoMoPaymentAdapter
+VNPayPaymentAdapter o--> IVNPayGateway : phụ thuộc port
+MoMoPaymentAdapter o--> IMoMoGateway : phụ thuộc port
+IVNPayGateway <|.. ExternalVNPaySdk : implements (Infrastructure)
+IMoMoGateway <|.. ExternalMoMoSdk : implements (Infrastructure)
+
+@enduml

@@ -55,8 +55,9 @@ npm run benchmark
 ```text
 ├── docs/                     # Toàn bộ tài liệu thiết kế chi tiết
 │   ├── architecture/         # Kiến trúc Clean Architecture & sơ đồ Domain
-│   ├── defense-qa/           # 12 câu hỏi vấn đáp điểm 10 kèm đáp án
-│   ├── patterns/             # 01 -> 06: Chi tiết từng Design Pattern & SOLID
+│   ├── defense-qa/           # 18 câu hỏi vấn đáp kèm đáp án (SOLID, 6 pattern, ngoại lệ nghiệp vụ)
+│   ├── patterns/             # 00 cơ sở lý thuyết + 01->06 chi tiết từng pattern (mermaid class & sequence inline)
+│   ├── diagrams-mermaid/     # 14 sơ đồ Mermaid (.mmd) + PNG đã render (class, sequence, use-case, domain)
 │   ├── testing/              # Báo cáo kết quả kiểm thử QA
 │   └── use-cases/            # Đặc tả ca sử dụng & sơ đồ Use Case
 ├── plans/                    # Kế hoạch thực hiện 7 Phase & Báo cáo tiểu luận
@@ -67,19 +68,20 @@ npm run benchmark
 │   └── generate-report-docx.ts # Script xuất tự động file Word báo cáo
 ├── src/                      # Mã nguồn chính (Clean Architecture)
 │   ├── application/          # Lớp Application (OrderCheckoutService)
-│   ├── domain/               # Lớp Domain (Entities & 6 Design Patterns)
-│   ├── infrastructure/       # Lớp Infrastructure (Third-party SDKs)
+│   ├── domain/               # Lớp Domain (Entities & 6 Design Patterns, Inventory observer)
+│   ├── infrastructure/       # Lớp Infrastructure (Third-party SDKs, Email/SMS observers)
 │   └── demo-runner.ts        # Interactive CLI Runner phục vụ ngày vấn đáp
 └── tests/                    # Toàn bộ Test Suites (Jest)
     ├── integration/          # Integration Test luồng Checkout toàn diện
-    └── unit/                 # Unit Test theo từng nhóm (Creational, Structural, Behavioral)
+    └── unit/                 # Unit Test theo nhóm (Creational, Structural, Behavioral, Application, Domain edge cases)
 ```
 
 ---
 
 ## 4. TÀI LIỆU BÁO CÁO & VẤN ĐÁP
 - **File Báo cáo Word chính thức (.docx):** `plans/reports/BAO_CAO_TIEU_LUAN_MAU_THIET_KE_PM.docx` (đã căn lề, mục lục, bảng phân công nhiệm vụ, chuẩn APA/IEEE).
-- **Bộ 12 Câu hỏi - Trả lời Vấn đáp bảo vệ:** `docs/defense-qa/cau-hoi-van-dap.md`.
-- **Đặc tả Use Case & Sơ đồ PlantUML:** `docs/use-cases/`.
+- **Cơ sở lý thuyết (3 nhóm pattern + 5 SOLID):** `docs/patterns/00-co-so-ly-thuyet.md`.
+- **Bộ 18 Câu hỏi - Trả lời Vấn đáp bảo vệ:** `docs/defense-qa/cau-hoi-van-dap.md`.
+- **Đặc tả Use Case & Sơ đồ Mermaid/PlantUML:** `docs/use-cases/`, `docs/diagrams-mermaid/`.
 - **Tài liệu Kiến trúc Clean Architecture:** `docs/architecture/clean-architecture.md`.
 - **Báo cáo Kiểm thử QA chi tiết:** `docs/testing/test-cases-and-results.md`.

@@ -1,0 +1,42 @@
+@startuml BuilderSequence
+title Sequence Diagram - Builder Pattern (Dựng Order từng bước có validate)
+
+actor Client
+participant Builder as "OrderBuilder"
+participant Product as "Product"
+participant Order as "Order"
+
+Client -> Builder : new OrderBuilder(orderId)
+Client -> Builder : setCustomer(customer)
+activate Builder
+Builder --> Client : this
+deactivate Builder
+
+Client -> Builder : addItem(product, quantity)
+activate Builder
+Builder -> Builder : tính tổng đã đặt của product (tích lũy)
+Builder -> Product : hasStock(đã đặt + quantity)
+activate Product
+Product --> Builder : true/false
+deactivate Product
+alt không đủ tồn kho
+  Builder --> Client : throw Error("không đủ tồn kho")
+else đủ
+  Builder --> Client : this
+end
+deactivate Builder
+
+Client -> Builder : setShippingAddress(address)
+Client -> Builder : enableGiftWrap(true) / enableInsurance(true)
+
+Client -> Builder : build()
+activate Builder
+Builder -> Builder : validate(customer, items, address)
+Builder -> Order : new Order(...)
+activate Order
+Order --> Builder : order
+deactivate Order
+Builder --> Client : Order (PENDING)
+deactivate Builder
+
+@enduml

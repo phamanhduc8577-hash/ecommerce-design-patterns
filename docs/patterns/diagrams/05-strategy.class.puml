@@ -1,0 +1,29 @@
+@startuml StrategyClass
+title Class Diagram - Strategy Pattern
+
+class OrderCheckoutService {
+  +checkout(order, discountStrategy, paymentFactory): Promise<CheckoutResult>
+}
+
+interface IDiscountStrategy {
+  +strategyName: string
+  +calculateDiscount(order, currentTotal): DiscountCalculationResult
+}
+
+class RegularCustomerDiscountStrategy {
+  +calculateDiscount(order, currentTotal): DiscountCalculationResult
+}
+class VipMemberDiscountStrategy {
+  -discountPercent: number
+  +calculateDiscount(order, currentTotal): DiscountCalculationResult
+}
+class HolidayTieredDiscountStrategy {
+  +calculateDiscount(order, currentTotal): DiscountCalculationResult
+}
+
+OrderCheckoutService o--> IDiscountStrategy : uses
+IDiscountStrategy <|.. RegularCustomerDiscountStrategy
+IDiscountStrategy <|.. VipMemberDiscountStrategy
+IDiscountStrategy <|.. HolidayTieredDiscountStrategy
+
+@enduml

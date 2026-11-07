@@ -1,0 +1,28 @@
+%% Sơ đồ Use Case tổng quát - Hệ thống TMĐT
+flowchart LR
+    Customer(["👤 Khách hàng"])
+    Gateway(["🏦 Cổng Thanh toán<br/>VNPay / MoMo"])
+    Notifier(["📨 Dịch vụ Thông báo<br/>Email / SMS"])
+    Inventory(["📦 Hệ thống Kho"])
+
+    subgraph SYS["Hệ thống Quản lý Bán hàng & TMĐT"]
+        UC1(["UC-01<br/>Duyệt & Chọn sản phẩm"])
+        UC2(["UC-02<br/>Xây dựng Đơn hàng<br/>(Builder)"])
+        UC3(["UC-03<br/>Tính giá, Chiết khấu & Phí<br/>(Strategy + Decorator)"])
+        UC4(["UC-04<br/>Thanh toán Đa cổng<br/>(Factory + Adapter)"])
+        UC5(["UC-05<br/>Phát sự kiện trạng thái<br/>(Observer)"])
+    end
+
+    Customer --> UC1
+    Customer --> UC2
+    Customer --> UC4
+    UC2 -. include .-> UC3
+    UC4 -. triggers PAID .-> UC5
+    UC4 --> Gateway
+    UC5 --> Notifier
+    UC5 --> Inventory
+
+    classDef actor fill:#1f6feb,stroke:#0b3d91,color:#fff
+    classDef usecase fill:#e8f0fe,stroke:#1f6feb,color:#0b3d91
+    class Customer,Gateway,Notifier,Inventory actor
+    class UC1,UC2,UC3,UC4,UC5 usecase

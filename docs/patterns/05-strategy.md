@@ -33,6 +33,35 @@ function calculateDiscount(type: string, amount: number) {
 - `OrderCheckoutService` đóng vai trò là Context, nhận vào một thể hiện của `IDiscountStrategy` và thực thi tính toán mà không quan tâm bên trong tính như thế nào.
 
 ### Sơ đồ lớp (Class Diagram):
+
+```mermaid
+classDiagram
+    class OrderCheckoutService {
+        +checkout(order, discountStrategy, paymentFactory) Promise~CheckoutResult~
+    }
+    class IDiscountStrategy {
+        <<interface>>
+        +strategyName: string
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    class RegularCustomerDiscountStrategy {
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    class VipMemberDiscountStrategy {
+        -discountPercent: number
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    class HolidayTieredDiscountStrategy {
+        +calculateDiscount(order, currentTotal) DiscountCalculationResult
+    }
+    OrderCheckoutService o--> IDiscountStrategy : uses
+    IDiscountStrategy <|.. RegularCustomerDiscountStrategy
+    IDiscountStrategy <|.. VipMemberDiscountStrategy
+    IDiscountStrategy <|.. HolidayTieredDiscountStrategy
+```
+
+<details><summary>Sơ đồ ASCII (bản dự phòng)</summary>
+
 ```
 +-----------------------------------+               +--------------------------------------+
 |       OrderCheckoutService        | ------------> |            <<interface>>             |
@@ -52,8 +81,40 @@ function calculateDiscount(type: string, amount: number) {
                +---------------------------+ +------------------------+             +-------------------------------+
 ```
 
+</details>
+
+### Sơ đồ tuần tự (Sequence Diagram):
+
+```mermaid
+sequenceDiagram
+    actor Client as OrderCheckoutService (Context)
+    participant Strategy as IDiscountStrategy
+    Client->>Client: nhận discountStrategy qua tham số (inject runtime)
+    Client->>Strategy: calculateDiscount(order, currentTotal)
+    activate Strategy
+    Strategy->>Strategy: áp dụng thuật toán riêng (vd VIP giảm 15%)
+    Strategy-->>Client: DiscountCalculationResult
+    deactivate Strategy
+    Client->>Client: finalAmount dùng cho thanh toán
+    Note over Client,Strategy: Đổi HolidayTieredDiscountStrategy<br/>chỉ cần truyền strategy khác, không sửa Context
+```
+
 ---
 
-## 3. CHỨNG MINH TUÂN THỦ NGUYÊN LÝ SOLID
-- **Open/Closed Principle (OCP):** Khi phòng Marketing tung ra chương trình "Black Friday 50%", ta chỉ cần tạo class `BlackFridayDiscountStrategy`. Toàn bộ mã nguồn cốt lõi trong `OrderCheckoutService` không thay đổi.
-- **Single Responsibility Principle (SRP):** Mỗi thuật toán chiết khấu nằm trọn vẹn trong một file duy nhất, độc lập và dễ dàng kiểm thử đơn vị.
+## 3. SO SÁNH ƯU/NHƯỢC ĐIỂM SO VỚI THIẾT KẾ THÔNG THƯỜNG
+
+| Tiêu chí | `switch-case` theo loại khách | Dùng Strategy |
+| :--- | :--- | :--- |
+| Thêm chính sách | Sửa hàm tính giá (phình to, dễ sai) | Thêm 1 class Strategy |
+| Khớp nối | Mọi chính sách dính chung 1 hàm | Mỗi thuật toán cô lập |
+| Nạp động | Khó đổi thuật toán lúc chạy | Inject strategy bất kỳ tại runtime |
+| **Nhược điểm của pattern** | — | Client phải biết các strategy để chọn; tăng số lượng class |
+
+---
+
+## 4. CHỨNG MINH TUÂN THỦ NGUYÊN LÝ SOLID
+- **Single Responsibility Principle (SRP):** Mỗi thuật toán chiết khấu nằm trọn trong một lớp độc lập, dễ kiểm thử đơn vị.
+- **Open/Closed Principle (OCP):** Thêm "Black Friday 50%" chỉ cần tạo `BlackFridayDiscountStrategy`, không đổi `OrderCheckoutService`.
+- **Liskov Substitution Principle (LSP):** Ba strategy dùng thay cho nhau trong Context mà kết quả vẫn đúng hợp đồng `DiscountCalculationResult`.
+- **Interface Segregation Principle (ISP):** `IDiscountStrategy` chỉ gồm `calculateDiscount()` và `strategyName`, không gộp hàm thừa.
+- **Dependency Inversion Principle (DIP):** Context phụ thuộc abstraction `IDiscountStrategy`, không phụ thuộc thuật toán cụ thể nào.

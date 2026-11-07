@@ -3,3 +3,7 @@ dist/
 coverage/
 .DS_Store
 *.log
+
+# Skill/tool artifacts (not part of project)
+GATES.md
+.review-scope.diff

@@ -5,10 +5,12 @@ import { Product } from './domain/entities/product';
 import { OrderBuilder } from './domain/patterns/creational/builder/order.builder';
 import { OrderEventPublisher } from './domain/patterns/behavioral/observer/order-event.publisher';
 import {
-  InventoryUpdateObserver,
+  InventoryUpdateObserver
+} from './domain/patterns/behavioral/observer/concrete-order.observers';
+import {
   EmailNotificationObserver,
   SmsNotificationObserver
-} from './domain/patterns/behavioral/observer/concrete-order.observers';
+} from './infrastructure/observers/notification.observers';
 import { OrderCheckoutService } from './application/services/order-checkout.service';
 import {
   VipMemberDiscountStrategy,
@@ -17,6 +19,7 @@ import {
 } from './domain/patterns/behavioral/strategy/concrete-discount.strategies';
 import { IDiscountStrategy } from './domain/patterns/behavioral/strategy/discount-strategy.interface';
 import { VNPayPaymentFactory, MoMoPaymentFactory } from './domain/patterns/structural/adapter/adapter-factories';
+import { ExternalVNPaySdk, ExternalMoMoSdk } from './infrastructure/gateways/third-party-payment-sdks';
 import { CODPaymentFactory } from './domain/patterns/creational/factory/cod-payment.factory';
 import { BankTransferPaymentFactory } from './domain/patterns/creational/factory/bank-transfer.factory';
 import { PaymentProcessorFactory } from './domain/patterns/creational/factory/payment-processor.factory';
@@ -84,7 +87,7 @@ export async function runAutomatedScenario() {
   const vipStrategy = new VipMemberDiscountStrategy();
 
   printStep(4, 'Factory Method & Adapter Pattern', 'Creational + Structural', 'Khởi tạo cổng VNPay và chuyển đổi tương thích SDK');
-  const vnpayFactory = new VNPayPaymentFactory();
+  const vnpayFactory = new VNPayPaymentFactory(new ExternalVNPaySdk());
 
   console.log(chalk.yellowBright('\n⚡ TIẾN HÀNH CHECKOUT VÀ THANH TOÁN...'));
   const result = await checkoutService.checkout(order, vipStrategy, vnpayFactory);
@@ -102,9 +105,18 @@ export async function runAutomatedScenario() {
   console.log(`  - Mã giao dịch: ${chalk.bold.cyan(result.paymentResult.transactionId)}`);
 
   printStep(5, 'Observer Pattern', 'Behavioral', 'Phát sự kiện ORDER_PAID đến các Observers đăng ký');
-  console.log(`  - InventoryUpdateObserver: Trừ kho thực tế: Laptop còn ${laptopDell.stockQuantity}, Phím còn ${banPhim.stockQuantity}`);
-  console.log(`  - EmailNotificationObserver: Đã gửi email xác nhận đến [${vipCustomer.email}]`);
-  console.log(`  - SmsNotificationObserver: Đã gửi SMS mã đơn đến [${vipCustomer.phone}]`);
+  // In kết quả thật từ Publisher (không in cứng) để phản ánh đúng trạng thái từng Observer.
+  result.observerResults.forEach(r => {
+    const status = r.success ? chalk.green('THÀNH CÔNG') : chalk.red(`THẤT BẠI: ${r.error}`);
+    console.log(`  - ${r.observerName}: ${status}`);
+  });
+  console.log(`  - Tồn kho sau giao dịch: Laptop còn ${laptopDell.stockQuantity}, Phím còn ${banPhim.stockQuantity}`);
+  console.log(chalk.gray(`  - Địa chỉ nhận thông báo: email [${vipCustomer.email}], SMS [${vipCustomer.phone}] (trạng thái gửi xem từng Observer ở trên)`));
+
+  if (result.hasObserverFailure) {
+    console.log(chalk.bold.red(`\n⚠ CẢNH BÁO: ${result.failedObservers.length} observer thất bại dù đơn đã thu tiền:`));
+    result.failedObservers.forEach(name => console.log(chalk.red(`    - ${name} (cần xử lý bù thủ công)`)));
+  }
 }
 
 export async function runInteractiveMenu(rl: readline.Interface) {
@@ -143,11 +155,24 @@ export async function runInteractiveMenu(rl: readline.Interface) {
     const mouse = new Product('P02', 'Chuột Logitech MX Master 3S', 'MX-3S', 2500000, 10, 'Phụ kiện');
     console.log(`  1. ${laptop.name} - ${formatCurrency(laptop.price)} (Tồn kho: ${laptop.stockQuantity})`);
     console.log(`  2. ${mouse.name} - ${formatCurrency(mouse.price)} (Tồn kho: ${mouse.stockQuantity})`);
-    const qtyLaptopInput = (await question('=> Số lượng Laptop muốn mua (0-5, mặc định 1): ')).trim();
-    const qtyLaptop = qtyLaptopInput === '' ? 1 : (parseInt(qtyLaptopInput, 10) || 0);
+    // Đọc số lượng an toàn: giới hạn trong khoảng tồn kho, phản hồi rõ khi nhập sai.
+    const readQty = async (label: string, max: number): Promise<number> => {
+      const raw = (await question(`=> Số lượng ${label} muốn mua (0-${max}, mặc định 1): `)).trim();
+      if (raw === '') return 1;
+      const n = parseInt(raw, 10);
+      if (isNaN(n) || n < 0) {
+        console.log(chalk.yellow(`  ⚠ Giá trị "${raw}" không hợp lệ, dùng mặc định 0.`));
+        return 0;
+      }
+      if (n > max) {
+        console.log(chalk.yellow(`  ⚠ Vượt tồn kho (${max}), tự điều chỉnh về ${max}.`));
+        return max;
+      }
+      return n;
+    };
 
-    const qtyMouseInput = (await question('=> Số lượng Chuột muốn mua (0-10, mặc định 1): ')).trim();
-    const qtyMouse = qtyMouseInput === '' ? 1 : (parseInt(qtyMouseInput, 10) || 0);
+    const qtyLaptop = await readQty('Laptop', laptop.stockQuantity);
+    const qtyMouse = await readQty('Chuột', mouse.stockQuantity);
 
     const orderBuilder = new OrderBuilder()
       .setCustomer(customer)
@@ -158,11 +183,18 @@ export async function runInteractiveMenu(rl: readline.Interface) {
         city: 'TP. Hồ Chí Minh'
       });
 
-    if (qtyLaptop > 0) orderBuilder.addItem(laptop, qtyLaptop);
-    if (qtyMouse > 0) orderBuilder.addItem(mouse, qtyMouse);
+    // Bọc addItem trong try/catch để demo không sập giữa chừng nếu validate tồn kho ném lỗi.
+    try {
+      if (qtyLaptop > 0) orderBuilder.addItem(laptop, qtyLaptop);
+      if (qtyMouse > 0) orderBuilder.addItem(mouse, qtyMouse);
 
-    if (qtyLaptop === 0 && qtyMouse === 0) {
-      console.log(chalk.yellow('Chưa chọn món nào, hệ thống mặc định thêm 1 Laptop cho demo.'));
+      if (qtyLaptop === 0 && qtyMouse === 0) {
+        console.log(chalk.yellow('Chưa chọn món nào, hệ thống mặc định thêm 1 Laptop cho demo.'));
+        orderBuilder.addItem(laptop, 1);
+      }
+    } catch (err: any) {
+      console.log(chalk.red(`✖ Không thể thêm sản phẩm: ${err.message}`));
+      console.log(chalk.yellow('  Hệ thống mặc định thêm 1 Laptop để tiếp tục demo.'));
       orderBuilder.addItem(laptop, 1);
     }
 
@@ -189,13 +221,13 @@ export async function runInteractiveMenu(rl: readline.Interface) {
 
     let factory: PaymentProcessorFactory;
     if (payChoice === '2') {
-      factory = new MoMoPaymentFactory();
+      factory = new MoMoPaymentFactory(new ExternalMoMoSdk());
     } else if (payChoice === '3') {
       factory = new CODPaymentFactory();
     } else if (payChoice === '4') {
       factory = new BankTransferPaymentFactory();
     } else {
-      factory = new VNPayPaymentFactory();
+      factory = new VNPayPaymentFactory(new ExternalVNPaySdk());
     }
 
     // 5. CẤU HÌNH OBSERVER PATTERN
@@ -242,6 +274,55 @@ export async function runInteractiveMenu(rl: readline.Interface) {
       console.log(`  - ${r.observerName}: ${statusText}`);
     });
     console.log(`  - Tồn kho sau giao dịch: Laptop: ${laptop.stockQuantity}, Chuột: ${mouse.stockQuantity}`);
+
+    if (result.hasObserverFailure) {
+      console.log(chalk.bold.red(`\n⚠ CẢNH BÁO: ${result.failedObservers.length} observer thất bại dù đơn đã thu tiền:`));
+      result.failedObservers.forEach(name => console.log(chalk.red(`    - ${name} (cần xử lý bù thủ công)`)));
+    }
+
+    // 6. DEMO SỰ KIỆN HUỶ ĐƠN: cùng Publisher, cùng Observer, phản ứng hoàn toàn khác
+    console.log(chalk.bold.cyan('\n[6] DEMO SỰ KIỆN HUỶ ĐƠN (Observer Pattern - ORDER_CANCELLED):'));
+    const wantCancelDemo = (await question('=> Chạy thêm demo huỷ đơn để xem Observer hoàn kho? (y/N, mặc định y): ')).trim().toLowerCase() || 'y';
+
+    if (wantCancelDemo === 'y') {
+      // Dùng sản phẩm riêng cho demo huỷ để không đụng tồn kho của đơn vừa checkout ở trên.
+      const demoBook = new Product('P-DEMO-CANCEL', 'Sách Design Patterns (GoF)', 'BOOK-GOF', 350000, 20, 'Sách');
+      const cancelOrder = new OrderBuilder()
+        .setCustomer(customer)
+        .addItem(demoBook, 2)
+        .setShippingAddress({
+          recipientName: customer.name,
+          phoneNumber: customer.phone,
+          street: '720A Điện Biên Phủ, P. 22',
+          city: 'TP. Hồ Chí Minh'
+        })
+        .build();
+      console.log(chalk.gray(`  ✔ Đã dựng đơn PENDING [#${cancelOrder.orderId}] - 2 cuốn sách (kho ${demoBook.stockQuantity}, CHƯA trừ vì chưa thanh toán)`));
+
+      const emailsBefore = emailObs.sentEmails.length;
+
+      const cancelResult = await checkoutService.cancelOrder(cancelOrder, 'Khách đổi ý, không mua nữa');
+
+      console.log(`  - Trạng thái đơn: ${chalk.bold.yellow(cancelResult.order.status)} (lý do: ${cancelResult.reason})`);
+      console.log(chalk.bold.bgCyan('\n [PHẢN ỨNG OBSERVER VỚI SỰ KIỆN HUỶ] '));
+      cancelResult.observerResults.forEach(r => {
+        const statusText = r.success ? chalk.green('THÀNH CÔNG') : chalk.red('THẤT BẠI: ' + r.error);
+        console.log(`  - ${r.observerName}: ${statusText}`);
+      });
+      console.log(chalk.green(`  ✔ Tồn kho sách giữ nguyên ${demoBook.stockQuantity} (đơn PENDING chưa trừ kho nên không cộng ảo)`));
+      if (emailObs.sentEmails.length > emailsBefore) {
+        console.log(chalk.green(`  ✔ Email huỷ: "${emailObs.sentEmails[emailObs.sentEmails.length - 1].subject}"`));
+      }
+      console.log(chalk.gray('  ↳ Cùng Publisher, cùng Observer - chỉ khác loại sự kiện: Email/SMS gửi thông báo huỷ,'));
+      console.log(chalk.gray('    Inventory chỉ hoàn kho cho đơn đã từng trừ (đã PAID), nên đơn PENDING này không đổi kho.'));
+
+      // Ràng buộc nghiệp vụ: đơn đã thanh toán không huỷ trực tiếp được
+      try {
+        await checkoutService.cancelOrder(order, 'Thử huỷ đơn đã thanh toán');
+      } catch (err: any) {
+        console.log(chalk.yellow(`  ⚠ Ràng buộc nghiệp vụ: ${err.message}`));
+      }
+    }
 
     printHeader('DEMO TƯƠNG TÁC KẾT THÚC THÀNH CÔNG RỰC RỠ');
   } finally {

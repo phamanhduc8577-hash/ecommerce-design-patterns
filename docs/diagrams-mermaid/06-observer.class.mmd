@@ -1,0 +1,33 @@
+%% Class Diagram - Observer Pattern
+classDiagram
+    class IOrderEventPublisher {
+        <<interface>>
+        +attach(observer) void
+        +detach(observerName) void
+        +notify(payload) Promise~Result[]~
+    }
+    class OrderEventPublisher {
+        -observers: IOrderObserver[]
+        +attach(observer) void
+        +detach(observerName) void
+        +notify(payload) Promise~Result[]~
+    }
+    class IOrderObserver {
+        <<interface>>
+        +observerName: string
+        +update(payload) void
+    }
+    class InventoryUpdateObserver {
+        +update(payload) void
+    }
+    class EmailNotificationObserver {
+        +update(payload) void
+    }
+    class SmsNotificationObserver {
+        +update(payload) void
+    }
+    IOrderEventPublisher <|.. OrderEventPublisher
+    OrderEventPublisher o--> IOrderObserver : notifies
+    IOrderObserver <|.. InventoryUpdateObserver
+    IOrderObserver <|.. EmailNotificationObserver
+    IOrderObserver <|.. SmsNotificationObserver

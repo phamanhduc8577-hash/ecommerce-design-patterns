@@ -1,0 +1,29 @@
+%% Sequence Diagram - Observer Pattern
+sequenceDiagram
+    actor Client as OrderCheckoutService
+    participant Pub as OrderEventPublisher
+    participant Inv as InventoryUpdateObserver
+    participant Email as EmailNotificationObserver
+    participant Sms as SmsNotificationObserver
+
+    Client->>Pub: notify(payload: ORDER_PAID)
+    activate Pub
+    Pub->>Inv: update(payload)
+    activate Inv
+    alt trừ kho thành công
+        Inv-->>Pub: ok
+    else lỗi (hết kho)
+        Inv-->>Pub: ghi success=false, error
+    end
+    deactivate Inv
+    Pub->>Email: update(payload)
+    activate Email
+    Email-->>Pub: ok
+    deactivate Email
+    Pub->>Sms: update(payload)
+    activate Sms
+    Sms-->>Pub: ok
+    deactivate Sms
+    Pub-->>Client: ObserverNotificationResult[]
+    deactivate Pub
+    Note over Pub,Sms: Mỗi observer độc lập (try/catch riêng),<br/>lỗi 1 cái không chặn cái khác

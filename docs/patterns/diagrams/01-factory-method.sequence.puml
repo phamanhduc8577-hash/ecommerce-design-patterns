@@ -1,0 +1,30 @@
+@startuml FactoryMethodSequence
+title Sequence Diagram - Factory Method Pattern (Khởi tạo & thực thi thanh toán)
+
+actor Client as "OrderCheckoutService\n(Client)"
+participant Factory as "VNPayPaymentFactory\n(ConcreteCreator)"
+participant Abstract as "PaymentProcessorFactory\n(Creator)"
+participant Processor as "VNPayPaymentAdapter\n(IPaymentProcessor)"
+
+Client -> Abstract : executePayment(amount, orderId)
+activate Abstract
+Abstract -> Abstract : validate(amount > 0)
+Abstract -> Factory : createPaymentProcessor()
+activate Factory
+Factory --> Abstract : new VNPayPaymentAdapter()
+deactivate Factory
+Abstract -> Processor : processPayment(amount, orderId)
+activate Processor
+Processor --> Abstract : PaymentResult
+deactivate Processor
+Abstract -> Abstract : gắn timestamp nếu thiếu
+Abstract --> Client : PaymentResult
+deactivate Abstract
+
+note right of Abstract
+  Template Method (executePayment) định khung quy trình,
+  Factory Method (createPaymentProcessor) do lớp con quyết định
+  tạo Processor nào -> OCP: thêm cổng mới không sửa Client.
+end note
+
+@enduml

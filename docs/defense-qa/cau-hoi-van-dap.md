@@ -55,8 +55,9 @@
 
 ### Câu 6: Nguyên lý Dependency Inversion Principle (DIP) được chứng minh thế nào?
 - **Trả lời:**
-  - `OrderCheckoutService` phụ thuộc vào Interface trừu tượng `PaymentProcessorFactory`, `IDiscountStrategy`, và `IOrderObserver`, chứ không bao giờ `new` trực tiếp `VNPayPaymentAdapter` hay `ExternalVNPaySdk`.
-  - Các SDK bên thứ ba thuộc tầng Infrastructure phụ thuộc ngược lại vào Interface của tầng Domain thông qua Adapter.
+  - `OrderCheckoutService` nhận vào các abstraction `PaymentProcessorFactory`, `IDiscountStrategy` và `IOrderEventPublisher` (constructor injection), chứ không bao giờ `new` trực tiếp `VNPayPaymentAdapter`, `ExternalVNPaySdk` hay `OrderEventPublisher` cụ thể.
+  - `OrderEventPublisher` lần lượt chỉ phụ thuộc `IOrderObserver`, không biết observer cụ thể nào được `attach`.
+  - Các SDK bên thứ ba thuộc tầng Infrastructure phụ thuộc ngược lại vào Interface của tầng Domain: Domain định nghĩa port `IVNPayGateway`/`IMoMoGateway`, còn `ExternalVNPaySdk`/`ExternalMoMoSdk` ở Infrastructure `implements` port đó. Adapter chỉ cầm port (tiêm qua constructor), nên **tầng Domain không import một dòng nào từ Infrastructure** — kiểm chứng bằng `grep -r infrastructure src/domain` (rỗng).
 
 ---
 
@@ -112,3 +113,83 @@
   - Khi đơn hàng thanh toán thành công, có rất nhiều công việc phụ thuộc cần thực hiện: trừ số lượng tồn kho, gửi email hóa đơn, gửi SMS cho khách.
   - Nếu viết theo cách thông thường, `OrderCheckoutService` sẽ phải gọi trực tiếp `InventoryService`, `EmailService`, `SmsService` -> Dẫn đến khớp nối chặt (Tight Coupling).
   - Áp dụng **Observer Pattern**, `OrderCheckoutService` chỉ cần phát sự kiện `ORDER_PAID`. Các Subscriber (`InventoryUpdateObserver`, `EmailNotificationObserver`, `SmsNotificationObserver`) tự động lắng nghe và xử lý. Khi cần bổ sung thêm kênh thông báo Zalo hoặc Push Notification, ta chỉ việc tạo Observer mới và `attach()` vào Publisher mà không sửa `OrderCheckoutService`.
+
+---
+
+## III. CÂU HỎI VỀ TÍNH ĐÚNG ĐẮN NGHIỆP VỤ & XỬ LÝ NGOẠI LỆ
+
+### Câu 13: Nếu khách thêm cùng một sản phẩm nhiều lần, hệ thống có bán vượt tồn kho không?
+- **Trả lời:**
+  - **Không.** Đây là lỗi kinh điển nếu validate theo từng lần gọi: với tồn kho 5, gọi `addItem(laptop, 3)` rồi `addItem(laptop, 3)` thì **mỗi lần đều hợp lệ** nhưng tổng 6 > 5.
+  - `OrderBuilder.addItem()` xử lý bằng cách **tích lũy** số lượng cùng `product.id` đã có trong giỏ rồi mới kiểm tra:
+    ```typescript
+    const alreadyOrdered = this.items
+      .filter(i => i.product.id === product.id)
+      .reduce((sum, i) => sum + i.quantity, 0);
+    if (!product.hasStock(alreadyOrdered + quantity)) { throw ... }
+    ```
+  - Thông điệp lỗi nêu rõ: còn bao nhiêu, đã đặt bao nhiêu, đang yêu cầu thêm bao nhiêu.
+  - Có unit test hồi quy riêng cho tình huống này.
+
+---
+
+### Câu 14: Nếu người dùng bấm "Thanh toán" hai lần, hệ thống có thu tiền hai lần không?
+- **Trả lời:**
+  - **Không.** Điểm quan trọng là **thứ tự kiểm tra**. Nếu chỉ dựa vào `Order.markAsPaid()` để chặn thì đã muộn: `processPayment()` đã chạy xong, tiền đã bị trừ, lỗi mới được ném ra.
+  - Vì vậy `OrderCheckoutService.checkout()` kiểm tra **ngay dòng đầu**, trước mọi thao tác tính giá và gọi cổng thanh toán:
+    ```typescript
+    if (order.status === OrderStatus.PAID) {
+      throw new Error(`Đơn hàng [${order.orderId}] đã được thanh toán trước đó...`);
+    }
+    ```
+  - Phòng thủ hai lớp: `Order.markAsPaid()` ở tầng Entity cũng tự chặn, bảo vệ cả khi có luồng khác gọi trực tiếp Entity.
+  - Test kiểm chứng bằng cách so tồn kho trước/sau lần gọi thứ hai — kho **không** bị trừ thêm, chứng minh thanh toán thực sự không chạy lại.
+
+---
+
+### Câu 15: Nếu Observer trừ kho thất bại sau khi đã thu tiền thì sao? Tiền đã mất mà kho chưa trừ?
+- **Trả lời:**
+  - Đây là tình huống thật: giữa lúc dựng đơn và lúc thanh toán, kho có thể bị đơn khác rút hết (race condition).
+  - `OrderEventPublisher.notify()` bọc mỗi Observer trong `try/catch` **độc lập** — Observer kho lỗi **không** chặn Email/SMS gửi đi (Fault-Tolerance).
+  - Nhưng *chịu lỗi* không có nghĩa là *nuốt lỗi*. `CheckoutResult` trả thêm:
+    ```typescript
+    hasObserverFailure: boolean;
+    failedObservers: string[];
+    ```
+  - Nhờ đó tầng trên biết chính xác Observer nào thất bại để xử lý bù thủ công. Demo CLI in cảnh báo đỏ ở **cả hai** chế độ (tự động và tương tác).
+  - **Lưu ý trung thực:** hệ thống hiện *phát hiện và báo* sự cố, chưa tự động rollback. Giải pháp triệt để cho hệ thống thật là Saga Pattern hoặc Outbox Pattern với bù trừ (compensating transaction) — nằm ngoài phạm vi tiểu luận.
+
+---
+
+### Câu 16: Hệ thống có xử lý luồng huỷ đơn không? Observer Pattern thể hiện thế nào ở đó?
+- **Trả lời:**
+  - Có. `OrderCheckoutService.cancelOrder(order, reason)` phát sự kiện `ORDER_CANCELLED` qua **cùng một** `OrderEventPublisher`.
+  - Đây là minh chứng mạnh nhất cho Observer Pattern: **cùng bộ Observer, cùng Publisher, nhưng phản ứng hoàn toàn khác** tùy `payload.event`:
+
+    | Observer | `ORDER_PAID` | `ORDER_CANCELLED` |
+    | :--- | :--- | :--- |
+    | `InventoryUpdateObserver` | Trừ kho (`deductStock`) | **Hoàn** kho — chỉ cho đơn đã từng trừ |
+    | `EmailNotificationObserver` | Gửi hóa đơn | Gửi thông báo huỷ + lý do |
+    | `SmsNotificationObserver` | Gửi mã vận đơn | Gửi thông báo huỷ + hotline |
+
+  - `cancelOrder()` **không biết** có bao nhiêu Observer đang lắng nghe. Muốn thêm hành vi khi huỷ (hoàn điểm thành viên, đẩy dữ liệu sang CRM) chỉ cần `attach` Observer mới.
+  - **Chi tiết hoàn kho (tránh lỗi tồn kho ảo):** tồn kho chỉ bị trừ tại `ORDER_PAID`. `InventoryUpdateObserver` ghi nhớ các đơn đã trừ, nên khi `ORDER_CANCELLED` nó **chỉ hoàn kho cho đơn đã từng trừ**. Huỷ một đơn `PENDING` (chưa trừ kho) sẽ không cộng ảo tồn kho — nếu hoàn vô điều kiện thì kho sẽ tăng lên quá số thực có.
+  - Ràng buộc nghiệp vụ: đơn đã `PAID` **không** huỷ trực tiếp được, phải qua quy trình hoàn tiền trước — chặn ở **cả** tầng service (`cancelOrder`) lẫn tầng entity (`markAsCancelled`). Đơn đã `CANCELLED` cũng không thể chuyển sang `PAID`.
+
+---
+
+### Câu 17: Thứ tự bọc Decorator có ảnh hưởng kết quả không?
+- **Trả lời:**
+  - **Có, và đó là chủ ý thiết kế.** `ShippingInsuranceDecorator` tính phí bảo hiểm bằng 1% giá trị của đối tượng nó bọc, tính ngay trong constructor.
+  - Hệ thống bọc theo thứ tự `Insurance(GiftWrap(Base))`, nên bảo hiểm được tính trên **cả** tiền hàng và phí gói quà — đúng nghiệp vụ, vì bảo hiểm phải bù đắp toàn bộ giá trị gói hàng được giao, bao gồm bao bì cao cấp.
+  - Nếu đảo thứ tự, chênh lệch nhỏ (đã đo: 300đ trên đơn 10 triệu). Đây là đặc tính cần nắm của Decorator khi các lớp bọc phụ thuộc giá trị bên trong, và đã được ghi vào mục nhược điểm trong tài liệu phân tích pattern.
+
+---
+
+### Câu 18: Độ tin cậy của mã nguồn được kiểm chứng ra sao?
+- **Trả lời:**
+  - **41/41 test pass**, chia 6 Test Suite: 3 suite theo nhóm pattern, 1 suite tầng Application, 1 suite ca biên Domain, 1 suite Integration.
+  - **Bao phủ 100% cả 4 chỉ số**: statements, branches, functions, lines. Nghĩa là mọi nhánh `if/else` — kể cả nhánh lỗi — đều được chạy ít nhất một lần.
+  - `tsc --noEmit` với `strict: true` cho 0 lỗi.
+  - Test không chỉ kiểm đường thành công mà bao gồm cả: thanh toán thất bại, bán vượt kho, thu tiền trùng, huỷ đơn hai lần, Observer ném lỗi không phải `Error`, Observer trùng tên.
+  - Ngoài ra có `npm run benchmark` đo overhead thực tế của từng pattern để đánh giá đánh đổi hiệu năng.

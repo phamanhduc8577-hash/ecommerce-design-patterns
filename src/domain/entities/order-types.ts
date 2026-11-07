@@ -1,8 +1,7 @@
 export enum OrderStatus {
   PENDING = 'PENDING',
   PAID = 'PAID',
-  CANCELLED = 'CANCELLED',
-  SHIPPED = 'SHIPPED'
+  CANCELLED = 'CANCELLED'
 }
 
 export interface ShippingAddress {
@@ -10,5 +9,4 @@ export interface ShippingAddress {
   phoneNumber: string;
   street: string;
   city: string;
-  postalCode?: string;
 }

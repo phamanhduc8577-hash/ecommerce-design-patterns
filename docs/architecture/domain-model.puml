@@ -38,7 +38,6 @@ enum OrderStatus {
   PENDING
   PAID
   CANCELLED
-  SHIPPED
 }
 
 class ShippingAddress {
@@ -46,7 +45,6 @@ class ShippingAddress {
   +phoneNumber: string
   +street: string
   +city: string
-  +postalCode?: string
 }
 
 class Order {

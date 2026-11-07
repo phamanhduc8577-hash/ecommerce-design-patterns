@@ -1,0 +1,32 @@
+%% Class Diagram - Builder Pattern
+classDiagram
+    class IOrderBuilder {
+        <<interface>>
+        +setCustomer(customer) this
+        +addItem(product, quantity) this
+        +setShippingAddress(address) this
+        +enableGiftWrap(enable) this
+        +enableInsurance(enable) this
+        +build() Order
+    }
+    class OrderBuilder {
+        -orderId: string
+        -customer: Customer
+        -items: OrderItem[]
+        -giftWrap: boolean
+        -insurance: boolean
+        +build() Order
+    }
+    class Order {
+        +orderId: string
+        +customer: Customer
+        +items: ReadonlyArray~OrderItem~
+        +withGiftWrap: boolean
+        +withInsurance: boolean
+        +status: OrderStatus
+        +subtotal: number
+        +markAsPaid(transactionId) void
+        +markAsCancelled(reason) void
+    }
+    IOrderBuilder <|.. OrderBuilder
+    OrderBuilder ..> Order : builds

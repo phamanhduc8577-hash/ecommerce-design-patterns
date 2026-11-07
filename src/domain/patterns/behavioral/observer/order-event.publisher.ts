@@ -1,10 +1,20 @@
 import { IOrderObserver, OrderEventPayload, ObserverNotificationResult } from './order-observer.interface';
 
 /**
+ * Abstraction (Subject) của Observer Pattern để tầng Application phụ thuộc vào (tuân thủ DIP).
+ */
+export interface IOrderEventPublisher {
+  attach(observer: IOrderObserver): void;
+  detach(observerName: string): void;
+  getObserversCount(): number;
+  notify(payload: OrderEventPayload): Promise<ObserverNotificationResult[]>;
+}
+
+/**
  * Subject trong Observer Pattern: Quản lý danh sách người quan sát và phát thông báo.
  * Tích hợp cơ chế chịu lỗi (Fault-Tolerance): Lỗi từ một Observer ngoại vi không làm sụp toàn bộ chu trình.
  */
-export class OrderEventPublisher {
+export class OrderEventPublisher implements IOrderEventPublisher {
   private observers: IOrderObserver[] = [];
 
   public attach(observer: IOrderObserver): void {

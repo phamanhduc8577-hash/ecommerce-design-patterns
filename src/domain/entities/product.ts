@@ -18,4 +18,12 @@ export class Product {
     }
     this.stockQuantity -= quantity;
   }
+
+  /** Hoàn lại tồn kho khi đơn hàng bị huỷ. */
+  public restoreStock(quantity: number): void {
+    if (quantity <= 0) {
+      throw new Error(`Số lượng hoàn kho cho sản phẩm [${this.name}] phải lớn hơn 0`);
+    }
+    this.stockQuantity += quantity;
+  }
 }

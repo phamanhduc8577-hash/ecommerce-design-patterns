@@ -1,6 +1,5 @@
 import { IDiscountStrategy, DiscountCalculationResult } from './discount-strategy.interface';
 import { Order } from '../../creational/builder/order.entity';
-import { CustomerTier } from '../../../entities/customer';
 
 /**
  * Concrete Strategy 1: Khách hàng thông thường (Không áp dụng chiết khấu đặc quyền)

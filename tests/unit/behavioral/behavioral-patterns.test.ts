@@ -8,10 +8,12 @@ import {
 } from '../../../src/domain/patterns/behavioral/strategy/concrete-discount.strategies';
 import { OrderEventPublisher } from '../../../src/domain/patterns/behavioral/observer/order-event.publisher';
 import {
-  InventoryUpdateObserver,
+  InventoryUpdateObserver
+} from '../../../src/domain/patterns/behavioral/observer/concrete-order.observers';
+import {
   EmailNotificationObserver,
   SmsNotificationObserver
-} from '../../../src/domain/patterns/behavioral/observer/concrete-order.observers';
+} from '../../../src/infrastructure/observers/notification.observers';
 
 describe('Unit Tests - Behavioral Patterns (Strategy & Observer)', () => {
   const vipCustomer = new Customer('VIP-01', 'Lê Hoàng C', 'c@vip.com', '0912345678', CustomerTier.VIP);

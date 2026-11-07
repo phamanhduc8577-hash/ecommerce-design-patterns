@@ -3,13 +3,16 @@ import { Product } from '../../src/domain/entities/product';
 import { OrderBuilder } from '../../src/domain/patterns/creational/builder/order.builder';
 import { OrderEventPublisher } from '../../src/domain/patterns/behavioral/observer/order-event.publisher';
 import {
-  InventoryUpdateObserver,
+  InventoryUpdateObserver
+} from '../../src/domain/patterns/behavioral/observer/concrete-order.observers';
+import {
   EmailNotificationObserver,
   SmsNotificationObserver
-} from '../../src/domain/patterns/behavioral/observer/concrete-order.observers';
+} from '../../src/infrastructure/observers/notification.observers';
 import { OrderCheckoutService } from '../../src/application/services/order-checkout.service';
 import { VipMemberDiscountStrategy } from '../../src/domain/patterns/behavioral/strategy/concrete-discount.strategies';
 import { VNPayPaymentFactory } from '../../src/domain/patterns/structural/adapter/adapter-factories';
+import { ExternalVNPaySdk } from '../../src/infrastructure/gateways/third-party-payment-sdks';
 import { OrderStatus } from '../../src/domain/entities/order-types';
 
 describe('Integration Test - End-to-End E-Commerce Flow (All 6 Patterns)', () => {
@@ -48,7 +51,7 @@ describe('Integration Test - End-to-End E-Commerce Flow (All 6 Patterns)', () =>
 
     // 5. Behavioral: Strategy (VIP) & Creational: Factory + Structural: Adapter (VNPay)
     const vipStrategy = new VipMemberDiscountStrategy();
-    const vnpayFactory = new VNPayPaymentFactory();
+    const vnpayFactory = new VNPayPaymentFactory(new ExternalVNPaySdk());
 
     const checkoutResult = await checkoutService.checkout(order, vipStrategy, vnpayFactory);
 
@@ -65,5 +68,55 @@ describe('Integration Test - End-to-End E-Commerce Flow (All 6 Patterns)', () =>
     // Kiểm tra thông báo gửi tự động (Observer)
     expect(emailObs.sentEmails.length).toBe(1);
     expect(smsObs.sentSms.length).toBe(1);
+
+    // Không có observer thất bại trong luồng chuẩn
+    expect(checkoutResult.hasObserverFailure).toBe(false);
+  });
+
+  test('Chống thu tiền 2 lần: checkout lại đơn đã PAID phải bị chặn NGAY, không gọi thanh toán', async () => {
+    const customer = new Customer('C-DUP', 'Khách trùng', 'dup@test.com', '0900000000', CustomerTier.VIP);
+    const prod = new Product('P-DUP', 'Chuột', 'SKU-DUP', 500000, 50, 'Phụ kiện');
+    const publisher = new OrderEventPublisher();
+    publisher.attach(new InventoryUpdateObserver());
+    const service = new OrderCheckoutService(publisher);
+
+    const order = new OrderBuilder('ORD-DUP-01')
+      .setCustomer(customer)
+      .addItem(prod, 1)
+      .setShippingAddress({ recipientName: 'A', phoneNumber: '0900000000', street: 'X', city: 'HCM' })
+      .build();
+
+    await service.checkout(order, new VipMemberDiscountStrategy(), new VNPayPaymentFactory(new ExternalVNPaySdk()));
+    expect(order.status).toBe(OrderStatus.PAID);
+    const stockAfterFirst = prod.stockQuantity;
+
+    // Lần 2 phải ném lỗi ngay, kho KHÔNG bị trừ thêm (chứng tỏ thanh toán không chạy lại)
+    await expect(
+      service.checkout(order, new VipMemberDiscountStrategy(), new VNPayPaymentFactory(new ExternalVNPaySdk()))
+    ).rejects.toThrow('chỉ checkout được đơn PENDING');
+    expect(prod.stockQuantity).toBe(stockAfterFirst);
+  });
+
+  test('Observer thất bại (trừ kho lỗi) được báo qua cờ hasObserverFailure, không nuốt lỗi âm thầm', async () => {
+    const customer = new Customer('C-INVFAIL', 'Khách', 'inv@test.com', '0900000000', CustomerTier.VIP);
+    const prod = new Product('P-INVFAIL', 'Hàng hiếm', 'SKU-RARE', 2000000, 10, 'Công nghệ');
+    const order = new OrderBuilder('ORD-INVFAIL-01')
+      .setCustomer(customer)
+      .addItem(prod, 8)
+      .setShippingAddress({ recipientName: 'A', phoneNumber: '0900000000', street: 'X', city: 'HCM' })
+      .build();
+
+    // Mô phỏng kho bị rút sau khi dựng đơn (race condition): còn 2 < 8 đã đặt
+    prod.stockQuantity = 2;
+
+    const publisher = new OrderEventPublisher();
+    publisher.attach(new InventoryUpdateObserver());
+    const service = new OrderCheckoutService(publisher);
+
+    const result = await service.checkout(order, new VipMemberDiscountStrategy(), new VNPayPaymentFactory(new ExternalVNPaySdk()));
+
+    expect(result.order.status).toBe(OrderStatus.PAID); // tiền đã thu
+    expect(result.hasObserverFailure).toBe(true);        // nhưng có cảnh báo
+    expect(result.failedObservers.length).toBe(1);
   });
 });

@@ -1,16 +1,17 @@
 import { IPaymentProcessor, PaymentResult } from '../../creational/factory/payment-processor.interface';
-import { ExternalVNPaySdk } from '../../../../infrastructure/gateways/third-party-payment-sdks';
+import { IVNPayGateway } from './payment-gateway.interfaces';
 
 /**
- * Adapter Pattern: Chuyển đổi giao diện ExternalVNPaySdk sang IPaymentProcessor chuẩn.
+ * Adapter Pattern: Chuyển đổi giao diện cổng VNPay (port `IVNPayGateway` của Domain)
+ * sang chuẩn `IPaymentProcessor` của hệ thống.
+ *
+ * Adapter chỉ phụ thuộc abstraction `IVNPayGateway` (DIP) — gateway cụ thể được tiêm vào
+ * qua constructor từ tầng ngoài (Factory/Infrastructure), nên Domain không phụ thuộc Infrastructure.
  */
 export class VNPayPaymentAdapter implements IPaymentProcessor {
   public readonly paymentMethodName = 'Cổng VNPay (Thẻ ATM/QR Pay)';
-  private readonly vnpaySdk: ExternalVNPaySdk;
 
-  constructor(sdk?: ExternalVNPaySdk) {
-    this.vnpaySdk = sdk || new ExternalVNPaySdk();
-  }
+  constructor(private readonly vnpaySdk: IVNPayGateway) {}
 
   public async processPayment(amount: number, orderId: string): Promise<PaymentResult> {
     // Adapter chuyển đổi tham số từ hệ thống sang chuẩn của VNPay SDK

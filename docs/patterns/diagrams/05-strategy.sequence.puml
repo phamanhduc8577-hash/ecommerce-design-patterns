@@ -1,0 +1,21 @@
+@startuml StrategySequence
+title Sequence Diagram - Strategy Pattern (Hoán đổi thuật toán chiết khấu)
+
+actor Client as "OrderCheckoutService\n(Context)"
+participant Strategy as "IDiscountStrategy\n(vd VipMemberDiscountStrategy)"
+
+Client -> Client : nhận discountStrategy qua tham số\n(inject tại runtime)
+Client -> Strategy : calculateDiscount(order, currentTotal)
+activate Strategy
+Strategy -> Strategy : áp dụng thuật toán riêng\n(vd giảm 15% cho VIP)
+Strategy --> Client : DiscountCalculationResult\n{ discountAmount, finalAmount, description }
+deactivate Strategy
+Client -> Client : finalAmount dùng cho thanh toán
+
+note right of Client
+  Context không biết bên trong tính thế nào.
+  Đổi sang HolidayTieredDiscountStrategy
+  chỉ cần truyền strategy khác -> không sửa Context.
+end note
+
+@enduml

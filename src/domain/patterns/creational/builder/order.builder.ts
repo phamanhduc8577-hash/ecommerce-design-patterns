@@ -36,8 +36,15 @@ export class OrderBuilder implements IOrderBuilder {
     if (quantity <= 0) {
       throw new Error(`Số lượng thêm cho sản phẩm [${product.name}] phải > 0`);
     }
-    if (!product.hasStock(quantity)) {
-      throw new Error(`Sản phẩm [${product.name}] không đủ tồn kho (chỉ còn ${product.stockQuantity})`);
+    // Tích lũy số lượng đã đặt của cùng sản phẩm để kiểm tra tồn kho đúng (tránh bán vượt kho).
+    const alreadyOrdered = this.items
+      .filter(i => i.product.id === product.id)
+      .reduce((sum, i) => sum + i.quantity, 0);
+    if (!product.hasStock(alreadyOrdered + quantity)) {
+      throw new Error(
+        `Sản phẩm [${product.name}] không đủ tồn kho (chỉ còn ${product.stockQuantity}, ` +
+        `đã đặt ${alreadyOrdered}, yêu cầu thêm ${quantity})`
+      );
     }
     const item = new OrderItem(product, quantity, product.price);
     this.items.push(item);

@@ -48,6 +48,14 @@ describe('Unit Tests - Creational Patterns (Factory Method & Builder)', () => {
       const builder = new OrderBuilder().setCustomer(customer);
       expect(() => builder.addItem(lowStockProduct, 5)).toThrow('không đủ tồn kho');
     });
+
+    test('Chống bán vượt kho: addItem cùng sản phẩm nhiều lần phải tích lũy số lượng', () => {
+      const prod = new Product('P-ACC', 'Laptop hiếm', 'LAP-RARE', 1000000, 5, 'Công nghệ');
+      const builder = new OrderBuilder().setCustomer(customer);
+      builder.addItem(prod, 3); // tổng 3/5, hợp lệ
+      // Lần 2: 3 + 3 = 6 > 5 tồn kho, phải ném lỗi (trước đây bị lọt)
+      expect(() => builder.addItem(prod, 3)).toThrow('không đủ tồn kho');
+    });
   });
 
   describe('Factory Method Pattern', () => {

@@ -1,0 +1,31 @@
+@startuml ObserverClass
+title Class Diagram - Observer Pattern
+
+class OrderEventPublisher {
+  -observers: IOrderObserver[]
+  +attach(observer): void
+  +detach(observerName): void
+  +notify(payload): Promise<ObserverNotificationResult[]>
+}
+
+interface IOrderObserver {
+  +observerName: string
+  +update(payload): Promise<void> | void
+}
+
+class InventoryUpdateObserver {
+  +update(payload): void
+}
+class EmailNotificationObserver {
+  +update(payload): void
+}
+class SmsNotificationObserver {
+  +update(payload): void
+}
+
+OrderEventPublisher o--> IOrderObserver : notifies
+IOrderObserver <|.. InventoryUpdateObserver
+IOrderObserver <|.. EmailNotificationObserver
+IOrderObserver <|.. SmsNotificationObserver
+
+@enduml

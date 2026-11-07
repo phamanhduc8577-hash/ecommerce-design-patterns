@@ -1,0 +1,22 @@
+%% Sequence Diagram - Factory Method Pattern
+sequenceDiagram
+    actor Client as OrderCheckoutService
+    participant Abstract as PaymentProcessorFactory
+    participant Factory as VNPayPaymentFactory
+    participant Processor as VNPayPaymentAdapter
+
+    Client->>Abstract: executePayment(amount, orderId)
+    activate Abstract
+    Abstract->>Abstract: validate(amount > 0)
+    Abstract->>Factory: createPaymentProcessor()
+    activate Factory
+    Factory-->>Abstract: new VNPayPaymentAdapter()
+    deactivate Factory
+    Abstract->>Processor: processPayment(amount, orderId)
+    activate Processor
+    Processor-->>Abstract: PaymentResult
+    deactivate Processor
+    Abstract->>Abstract: gắn timestamp nếu thiếu
+    Abstract-->>Client: PaymentResult
+    deactivate Abstract
+    Note over Abstract,Factory: Template Method định khung,<br/>Factory Method cho lớp con chọn Processor

@@ -3,6 +3,8 @@ import { Product } from '../../../src/domain/entities/product';
 import { OrderBuilder } from '../../../src/domain/patterns/creational/builder/order.builder';
 import { VNPayPaymentAdapter } from '../../../src/domain/patterns/structural/adapter/vnpay-payment.adapter';
 import { MoMoPaymentAdapter } from '../../../src/domain/patterns/structural/adapter/momo-payment.adapter';
+import { ExternalVNPaySdk, ExternalMoMoSdk } from '../../../src/infrastructure/gateways/third-party-payment-sdks';
+import { IVNPayGateway } from '../../../src/domain/patterns/structural/adapter/payment-gateway.interfaces';
 import { BaseOrderPricing } from '../../../src/domain/patterns/structural/decorator/base-order.pricing';
 import { GiftWrapDecorator, ShippingInsuranceDecorator } from '../../../src/domain/patterns/structural/decorator/concrete-decorators';
 
@@ -23,7 +25,7 @@ describe('Unit Tests - Structural Patterns (Adapter & Decorator)', () => {
 
   describe('Adapter Pattern', () => {
     test('VNPayPaymentAdapter chuyển đổi thành công giao diện sang chuẩn IPaymentProcessor', async () => {
-      const adapter = new VNPayPaymentAdapter();
+      const adapter = new VNPayPaymentAdapter(new ExternalVNPaySdk());
       expect(adapter.paymentMethodName).toContain('VNPay');
 
       const result = await adapter.processPayment(28000000, order.orderId);
@@ -33,12 +35,27 @@ describe('Unit Tests - Structural Patterns (Adapter & Decorator)', () => {
     });
 
     test('MoMoPaymentAdapter chuyển đổi thành công giao dịch sang chuẩn IPaymentProcessor', async () => {
-      const adapter = new MoMoPaymentAdapter();
+      const adapter = new MoMoPaymentAdapter(new ExternalMoMoSdk());
       expect(adapter.paymentMethodName).toContain('MoMo');
 
       const result = await adapter.processPayment(28000000, order.orderId);
       expect(result.success).toBe(true);
       expect(result.transactionId).toContain('MOMO');
+    });
+
+    test('DIP: Adapter chỉ phụ thuộc port IVNPayGateway, dễ dàng thay bằng fake gateway để test', async () => {
+      // Fake gateway tự tạo trong test - không cần SDK thật. Chứng minh Adapter phụ thuộc abstraction.
+      const fakeGateway: IVNPayGateway = {
+        doPaymentGateway: (p) => ({
+          code: '00',
+          vnp_TransactionNo: `FAKE-${p.vnp_TxnRef}`,
+          message: 'Giao dịch giả lập phục vụ unit test'
+        })
+      };
+      const adapter = new VNPayPaymentAdapter(fakeGateway);
+      const result = await adapter.processPayment(1000000, 'ORD-FAKE');
+      expect(result.success).toBe(true);
+      expect(result.transactionId).toBe('FAKE-ORD-FAKE');
     });
   });
 

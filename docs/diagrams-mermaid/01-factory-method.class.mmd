@@ -1,0 +1,34 @@
+%% Class Diagram - Factory Method Pattern
+classDiagram
+    class IPaymentProcessor {
+        <<interface>>
+        +paymentMethodName: string
+        +processPayment(amount, orderId) Promise~PaymentResult~
+    }
+    class PaymentProcessorFactory {
+        <<abstract>>
+        +createPaymentProcessor()* IPaymentProcessor
+        +executePayment(amount, orderId) Promise~PaymentResult~
+    }
+    class CODPaymentFactory {
+        +createPaymentProcessor() IPaymentProcessor
+    }
+    class VNPayPaymentFactory {
+        +createPaymentProcessor() IPaymentProcessor
+    }
+    class MoMoPaymentFactory {
+        +createPaymentProcessor() IPaymentProcessor
+    }
+    class CODPaymentProcessor
+    class VNPayPaymentAdapter
+    class MoMoPaymentAdapter
+
+    PaymentProcessorFactory <|-- CODPaymentFactory
+    PaymentProcessorFactory <|-- VNPayPaymentFactory
+    PaymentProcessorFactory <|-- MoMoPaymentFactory
+    IPaymentProcessor <|.. CODPaymentProcessor
+    IPaymentProcessor <|.. VNPayPaymentAdapter
+    IPaymentProcessor <|.. MoMoPaymentAdapter
+    CODPaymentFactory ..> CODPaymentProcessor : creates
+    VNPayPaymentFactory ..> VNPayPaymentAdapter : creates
+    MoMoPaymentFactory ..> MoMoPaymentAdapter : creates

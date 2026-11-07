@@ -11,10 +11,12 @@ import {
 } from '../src/domain/patterns/behavioral/strategy/concrete-discount.strategies';
 import { OrderEventPublisher } from '../src/domain/patterns/behavioral/observer/order-event.publisher';
 import {
-  InventoryUpdateObserver,
+  InventoryUpdateObserver
+} from '../src/domain/patterns/behavioral/observer/concrete-order.observers';
+import {
   EmailNotificationObserver,
   SmsNotificationObserver
-} from '../src/domain/patterns/behavioral/observer/concrete-order.observers';
+} from '../src/infrastructure/observers/notification.observers';
 
 async function runBenchmark() {
   console.log(chalk.bold.cyan('======================================================================'));

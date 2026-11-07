@@ -1,0 +1,29 @@
+@startuml DecoratorSequence
+title Sequence Diagram - Decorator Pattern (Cộng dồn phí dịch vụ runtime)
+
+actor Client as "OrderCheckoutService\n(Client)"
+participant Ins as "ShippingInsuranceDecorator"
+participant Gift as "GiftWrapDecorator"
+participant Base as "BaseOrderPricing"
+
+note over Client, Base
+  Chuỗi bọc: Insurance( Gift( Base ) )
+  Gọi calculateTotal() lan truyền vào trong rồi cộng dồn ra ngoài.
+end note
+
+Client -> Ins : calculateTotal()
+activate Ins
+Ins -> Gift : super.calculateTotal()
+activate Gift
+Gift -> Base : super.calculateTotal()
+activate Base
+Base --> Gift : subtotal (tiền hàng gốc)
+deactivate Base
+Gift -> Gift : + giftWrapFee (30.000)
+Gift --> Ins : subtotal + 30.000
+deactivate Gift
+Ins -> Ins : + insuranceFee (1% baseTotal)
+Ins --> Client : tổng cuối cùng
+deactivate Ins
+
+@enduml

@@ -1,0 +1,13 @@
+%% Sequence Diagram - Strategy Pattern
+sequenceDiagram
+    actor Client as OrderCheckoutService (Context)
+    participant Strategy as IDiscountStrategy
+
+    Client->>Client: nhận discountStrategy qua tham số (inject runtime)
+    Client->>Strategy: calculateDiscount(order, currentTotal)
+    activate Strategy
+    Strategy->>Strategy: áp dụng thuật toán riêng (vd VIP giảm 15%)
+    Strategy-->>Client: DiscountCalculationResult
+    deactivate Strategy
+    Client->>Client: finalAmount dùng cho thanh toán
+    Note over Client,Strategy: Đổi HolidayTieredDiscountStrategy<br/>chỉ cần truyền strategy khác, không sửa Context

@@ -1,0 +1,28 @@
+%% Sequence Diagram - Builder Pattern
+sequenceDiagram
+    actor Client
+    participant Builder as OrderBuilder
+    participant Product
+    participant Order
+
+    Client->>Builder: new OrderBuilder(orderId)
+    Client->>Builder: setCustomer(customer)
+    Client->>Builder: addItem(product, quantity)
+    activate Builder
+    Builder->>Builder: tính tổng đã đặt (tích lũy)
+    Builder->>Product: hasStock(đã đặt + quantity)
+    Product-->>Builder: true / false
+    alt không đủ tồn kho
+        Builder-->>Client: throw Error
+    else đủ tồn kho
+        Builder-->>Client: this
+    end
+    deactivate Builder
+    Client->>Builder: setShippingAddress(address)
+    Client->>Builder: build()
+    activate Builder
+    Builder->>Builder: validate(customer, items, address)
+    Builder->>Order: new Order(...)
+    Order-->>Builder: order
+    Builder-->>Client: Order (PENDING)
+    deactivate Builder

@@ -1,0 +1,38 @@
+@startuml BuilderClass
+title Class Diagram - Builder Pattern
+
+interface IOrderBuilder {
+  +setCustomer(customer): this
+  +addItem(product, quantity): this
+  +setShippingAddress(address): this
+  +enableGiftWrap(enable?): this
+  +enableInsurance(enable?): this
+  +setSpecialNotes(notes): this
+  +build(): Order
+}
+
+class OrderBuilder {
+  -orderId: string
+  -customer?: Customer
+  -items: OrderItem[]
+  -shippingAddress?: ShippingAddress
+  -giftWrap: boolean
+  -insurance: boolean
+  +build(): Order
+}
+
+class Order {
+  +orderId: string
+  +customer: Customer
+  +items: ReadonlyArray<OrderItem>
+  +withGiftWrap: boolean
+  +withInsurance: boolean
+  +status: OrderStatus
+  +subtotal: number
+  +markAsPaid(transactionId): void
+}
+
+IOrderBuilder <|.. OrderBuilder
+OrderBuilder ..> Order : builds
+
+@enduml

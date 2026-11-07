@@ -30,6 +30,44 @@ if (method === 'COD') {
 Định nghĩa phương thức nhà máy trừu tượng `createPaymentProcessor(): IPaymentProcessor` trong lớp cha `PaymentProcessorFactory`. Các lớp con cụ thể (`CODPaymentFactory`, `BankTransferPaymentFactory`, `VNPayPaymentFactory`) sẽ chịu trách nhiệm khởi tạo đối tượng tương ứng.
 
 ### Sơ đồ lớp (Class Diagram):
+
+```mermaid
+classDiagram
+    class IPaymentProcessor {
+        <<interface>>
+        +paymentMethodName: string
+        +processPayment(amount, orderId) Promise~PaymentResult~
+    }
+    class PaymentProcessorFactory {
+        <<abstract>>
+        +createPaymentProcessor()* IPaymentProcessor
+        +executePayment(amount, orderId) Promise~PaymentResult~
+    }
+    class CODPaymentFactory {
+        +createPaymentProcessor() IPaymentProcessor
+    }
+    class VNPayPaymentFactory {
+        +createPaymentProcessor() IPaymentProcessor
+    }
+    class MoMoPaymentFactory {
+        +createPaymentProcessor() IPaymentProcessor
+    }
+    class CODPaymentProcessor
+    class VNPayPaymentAdapter
+    class MoMoPaymentAdapter
+    PaymentProcessorFactory <|-- CODPaymentFactory
+    PaymentProcessorFactory <|-- VNPayPaymentFactory
+    PaymentProcessorFactory <|-- MoMoPaymentFactory
+    IPaymentProcessor <|.. CODPaymentProcessor
+    IPaymentProcessor <|.. VNPayPaymentAdapter
+    IPaymentProcessor <|.. MoMoPaymentAdapter
+    CODPaymentFactory ..> CODPaymentProcessor : creates
+    VNPayPaymentFactory ..> VNPayPaymentAdapter : creates
+    MoMoPaymentFactory ..> MoMoPaymentAdapter : creates
+```
+
+<details><summary>Sơ đồ ASCII (bản dự phòng)</summary>
+
 ```
        +------------------------------------+
        |  <<abstract>>                      |
@@ -63,9 +101,49 @@ if (method === 'COD') {
       +-----------------------------+
 ```
 
+</details>
+
+### Sơ đồ tuần tự (Sequence Diagram):
+
+```mermaid
+sequenceDiagram
+    actor Client as OrderCheckoutService
+    participant Abstract as PaymentProcessorFactory
+    participant Factory as VNPayPaymentFactory
+    participant Processor as VNPayPaymentAdapter
+    Client->>Abstract: executePayment(amount, orderId)
+    activate Abstract
+    Abstract->>Abstract: validate(amount > 0)
+    Abstract->>Factory: createPaymentProcessor()
+    activate Factory
+    Factory-->>Abstract: new VNPayPaymentAdapter()
+    deactivate Factory
+    Abstract->>Processor: processPayment(amount, orderId)
+    activate Processor
+    Processor-->>Abstract: PaymentResult
+    deactivate Processor
+    Abstract->>Abstract: gắn timestamp nếu thiếu
+    Abstract-->>Client: PaymentResult
+    deactivate Abstract
+    Note over Abstract,Factory: Template Method định khung,<br/>Factory Method cho lớp con chọn Processor
+```
+
 ---
 
-## 3. CHỨNG MINH TUÂN THỦ NGUYÊN LÝ SOLID
-- **Single Responsibility Principle (SRP):** Trách nhiệm khởi tạo đối tượng thanh toán được tách rời khỏi lớp thực thi thanh toán và lớp dịch vụ đơn hàng.
-- **Open/Closed Principle (OCP):** Khi thêm cổng ZaloPay, chỉ cần tạo `ZaloPayPaymentProcessor` và `ZaloPayPaymentFactory`. Không sửa một dòng code cũ nào trong `OrderCheckoutService`.
-- **Dependency Inversion Principle (DIP):** Client (`OrderCheckoutService`) chỉ tương tác thông qua `PaymentProcessorFactory` và `IPaymentProcessor`, không phụ thuộc vào lớp cụ thể nào.
+## 3. SO SÁNH ƯU/NHƯỢC ĐIỂM SO VỚI THIẾT KẾ THÔNG THƯỜNG
+
+| Tiêu chí | Dùng `if-else` + `new` trực tiếp | Dùng Factory Method |
+| :--- | :--- | :--- |
+| Thêm cổng mới | Sửa khối `if-else` trong service (vi phạm OCP) | Thêm 1 class Factory, không sửa code cũ |
+| Khớp nối | Service biết mọi lớp Processor cụ thể | Service chỉ biết abstraction |
+| Kiểm thử | Khó mock, phải dựng cả nhánh điều kiện | Mock Factory dễ dàng |
+| **Nhược điểm của pattern** | — | Tăng số lượng class (mỗi sản phẩm 1 Factory); với hệ nhỏ có thể là over-engineering |
+
+---
+
+## 4. CHỨNG MINH TUÂN THỦ NGUYÊN LÝ SOLID
+- **Single Responsibility Principle (SRP):** Trách nhiệm khởi tạo đối tượng thanh toán tách rời khỏi lớp thực thi và lớp dịch vụ đơn hàng.
+- **Open/Closed Principle (OCP):** Thêm cổng ZaloPay chỉ cần tạo `ZaloPayPaymentProcessor` + `ZaloPayPaymentFactory`, không sửa dòng nào trong `OrderCheckoutService`.
+- **Liskov Substitution Principle (LSP):** Mọi `ConcreteFactory` thay thế được `PaymentProcessorFactory`; mọi Processor trả về đều tuân thủ hợp đồng `IPaymentProcessor`, dùng thay nhau không phá tính đúng đắn.
+- **Interface Segregation Principle (ISP):** `IPaymentProcessor` chỉ gồm `processPayment()` và `paymentMethodName`, không ép Processor implement hàm thừa.
+- **Dependency Inversion Principle (DIP):** Client chỉ tương tác qua `PaymentProcessorFactory` và `IPaymentProcessor` (abstraction), không phụ thuộc lớp cụ thể.

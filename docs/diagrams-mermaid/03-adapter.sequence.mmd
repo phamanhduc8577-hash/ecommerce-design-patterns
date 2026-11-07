@@ -1,0 +1,18 @@
+%% Sequence Diagram - Adapter Pattern
+sequenceDiagram
+    actor Client as OrderCheckoutService
+    participant Adapter as VNPayPaymentAdapter
+    participant Sdk as ExternalVNPaySdk
+
+    Client->>Adapter: processPayment(amount, orderId)
+    activate Adapter
+    Note right of Adapter: Chuyển chuẩn hệ thống<br/>sang định dạng VNPay SDK
+    Adapter->>Adapter: map tham số (vnp_Amount = amount*100)
+    Adapter->>Sdk: doPaymentGateway(vnpParams)
+    activate Sdk
+    Sdk-->>Adapter: { code, vnp_TransactionNo, message }
+    deactivate Sdk
+    Adapter->>Adapter: isSuccess = (code === '00')
+    Adapter->>Adapter: map về PaymentResult
+    Adapter-->>Client: PaymentResult (chuẩn IPaymentProcessor)
+    deactivate Adapter

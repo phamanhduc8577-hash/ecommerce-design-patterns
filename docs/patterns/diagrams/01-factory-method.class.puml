@@ -1,0 +1,47 @@
+@startuml FactoryMethodClass
+title Class Diagram - Factory Method Pattern
+
+interface IPaymentProcessor {
+  +paymentMethodName: string
+  +processPayment(amount, orderId): Promise<PaymentResult>
+}
+
+abstract class PaymentProcessorFactory {
+  +{abstract} createPaymentProcessor(): IPaymentProcessor
+  +executePayment(amount, orderId): Promise<PaymentResult>
+}
+
+class CODPaymentFactory {
+  +createPaymentProcessor(): IPaymentProcessor
+}
+class BankTransferPaymentFactory {
+  +createPaymentProcessor(): IPaymentProcessor
+}
+class VNPayPaymentFactory {
+  +createPaymentProcessor(): IPaymentProcessor
+}
+class MoMoPaymentFactory {
+  +createPaymentProcessor(): IPaymentProcessor
+}
+
+class CODPaymentProcessor
+class BankTransferPaymentProcessor
+class VNPayPaymentAdapter
+class MoMoPaymentAdapter
+
+PaymentProcessorFactory <|-- CODPaymentFactory
+PaymentProcessorFactory <|-- BankTransferPaymentFactory
+PaymentProcessorFactory <|-- VNPayPaymentFactory
+PaymentProcessorFactory <|-- MoMoPaymentFactory
+
+IPaymentProcessor <|.. CODPaymentProcessor
+IPaymentProcessor <|.. BankTransferPaymentProcessor
+IPaymentProcessor <|.. VNPayPaymentAdapter
+IPaymentProcessor <|.. MoMoPaymentAdapter
+
+CODPaymentFactory ..> CODPaymentProcessor : creates
+BankTransferPaymentFactory ..> BankTransferPaymentProcessor : creates
+VNPayPaymentFactory ..> VNPayPaymentAdapter : creates
+MoMoPaymentFactory ..> MoMoPaymentAdapter : creates
+
+@enduml

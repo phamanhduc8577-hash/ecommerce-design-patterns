@@ -1,0 +1,36 @@
+@startuml DecoratorClass
+title Class Diagram - Decorator Pattern
+
+interface IOrderPricing {
+  +calculateTotal(): number
+  +getBreakdown(): PriceBreakdown[]
+}
+
+class BaseOrderPricing {
+  -order: Order
+  +calculateTotal(): number
+  +getBreakdown(): PriceBreakdown[]
+}
+
+abstract class OrderPricingDecorator {
+  #wrappee: IOrderPricing
+  +calculateTotal(): number
+  +getBreakdown(): PriceBreakdown[]
+}
+
+class GiftWrapDecorator {
+  -giftWrapFee: number
+  +calculateTotal(): number
+}
+class ShippingInsuranceDecorator {
+  -insuranceFee: number
+  +calculateTotal(): number
+}
+
+IOrderPricing <|.. BaseOrderPricing
+IOrderPricing <|.. OrderPricingDecorator
+OrderPricingDecorator o--> IOrderPricing : wraps
+OrderPricingDecorator <|-- GiftWrapDecorator
+OrderPricingDecorator <|-- ShippingInsuranceDecorator
+
+@enduml

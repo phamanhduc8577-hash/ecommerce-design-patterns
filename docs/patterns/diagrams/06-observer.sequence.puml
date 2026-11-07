@@ -1,0 +1,37 @@
+@startuml ObserverSequence
+title Sequence Diagram - Observer Pattern (Phát sự kiện ORDER_PAID)
+
+actor Client as "OrderCheckoutService"
+participant Publisher as "OrderEventPublisher\n(Subject)"
+participant Inv as "InventoryUpdateObserver"
+participant Email as "EmailNotificationObserver"
+participant Sms as "SmsNotificationObserver"
+
+Client -> Publisher : notify(payload: ORDER_PAID)
+activate Publisher
+
+loop mỗi observer đã attach
+  Publisher -> Inv : update(payload)
+  activate Inv
+  alt trừ kho thành công
+    Inv --> Publisher : ok
+  else lỗi (vd hết kho)
+    Inv --> Publisher : throw -> ghi { success:false, error }
+  end
+  deactivate Inv
+
+  Publisher -> Email : update(payload)
+  activate Email
+  Email --> Publisher : ok
+  deactivate Email
+
+  Publisher -> Sms : update(payload)
+  activate Sms
+  Sms --> Publisher : ok
+  deactivate Sms
+end
+
+Publisher --> Client : ObserverNotificationResult[]\n(mỗi observer độc lập, lỗi 1 cái không chặn cái khác)
+deactivate Publisher
+
+@enduml

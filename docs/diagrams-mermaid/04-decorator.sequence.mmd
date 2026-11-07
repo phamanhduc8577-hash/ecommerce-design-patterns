@@ -1,0 +1,22 @@
+%% Sequence Diagram - Decorator Pattern
+sequenceDiagram
+    actor Client as OrderCheckoutService
+    participant Ins as ShippingInsuranceDecorator
+    participant Gift as GiftWrapDecorator
+    participant Base as BaseOrderPricing
+
+    Note over Client,Base: Chuỗi bọc Insurance( Gift( Base ) )
+    Client->>Ins: calculateTotal()
+    activate Ins
+    Ins->>Gift: super.calculateTotal()
+    activate Gift
+    Gift->>Base: super.calculateTotal()
+    activate Base
+    Base-->>Gift: subtotal (tiền hàng gốc)
+    deactivate Base
+    Gift->>Gift: + giftWrapFee (30.000)
+    Gift-->>Ins: subtotal + 30.000
+    deactivate Gift
+    Ins->>Ins: + insuranceFee (1% baseTotal)
+    Ins-->>Client: tổng cuối cùng
+    deactivate Ins

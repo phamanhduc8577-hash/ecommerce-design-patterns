@@ -1,0 +1,62 @@
+%% Mô hình thực thể dữ liệu - Domain Entities
+classDiagram
+    class Customer {
+        +id: string
+        +name: string
+        +email: string
+        +phone: string
+        +tier: CustomerTier
+    }
+    class Product {
+        +id: string
+        +name: string
+        +sku: string
+        +price: number
+        +stockQuantity: number
+        +hasStock(quantity) boolean
+        +deductStock(quantity) void
+        +restoreStock(quantity) void
+    }
+    class OrderItem {
+        +product: Product
+        +quantity: number
+        +unitPrice: number
+        +subtotal: number
+    }
+    class Order {
+        +orderId: string
+        +customer: Customer
+        +items: OrderItem[]
+        +shippingAddress: ShippingAddress
+        +withGiftWrap: boolean
+        +withInsurance: boolean
+        +status: OrderStatus
+        +subtotal: number
+        +markAsPaid(txnId) void
+        +markAsCancelled(reason) void
+    }
+    class ShippingAddress {
+        +recipientName: string
+        +phoneNumber: string
+        +street: string
+        +city: string
+    }
+    class CustomerTier {
+        <<enumeration>>
+        REGULAR
+        SILVER
+        GOLD
+        VIP
+    }
+    class OrderStatus {
+        <<enumeration>>
+        PENDING
+        PAID
+        CANCELLED
+    }
+    Customer "1" --> "0..*" Order : places
+    Order "1" *-- "1..*" OrderItem : contains
+    OrderItem "0..*" --> "1" Product : references
+    Order --> ShippingAddress
+    Customer ..> CustomerTier
+    Order ..> OrderStatus

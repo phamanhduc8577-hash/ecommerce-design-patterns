@@ -28,10 +28,10 @@ Mục tiêu của đề tài là áp dụng kiến trúc **Clean Architecture** 
 
 ### 3.1. Yêu cầu chức năng (Functional Requirements - FR)
 - **FR-01: Quản lý danh mục & sản phẩm:** Duyệt danh sách sản phẩm, kiểm tra số lượng tồn kho.
-- **FR-02: Khởi tạo và Tùy biến Đơn hàng (Custom Order Creation):** Cho phép khách hàng thêm các mặt hàng, chọn địa chỉ giao hàng, áp dụng mã voucher, yêu cầu đóng gói quà tặng và bảo hiểm vận chuyển.
+- **FR-02: Khởi tạo và Tùy biến Đơn hàng (Custom Order Creation):** Cho phép khách hàng thêm các mặt hàng, chọn địa chỉ giao hàng, yêu cầu đóng gói quà tặng và bảo hiểm vận chuyển.
 - **FR-03: Tính toán giá & Chiết khấu (Pricing & Discount Calculation):** Tính tổng tiền hàng, tự động áp dụng chiết khấu theo hạng khách hàng (Regular: 0%, VIP: 15%, Holiday Promo), cộng dồn chi phí dịch vụ giá trị gia tăng (Gói quà, Bảo hiểm).
 - **FR-04: Xử lý Thanh toán đa cổng (Multi-Gateway Payment Processing):** Hỗ trợ thanh toán qua VNPay, MoMo, COD. Cho phép cắm thêm cổng mới (ZaloPay, PayPal) trong tương lai mà không sửa đổi mã nguồn xử lý thanh toán cốt lõi.
-- **FR-05: Cập nhật trạng thái & Phát sự kiện tự động (Order Lifecycle & Event Dispatching):** Khi đơn hàng chuyển trạng thái (`PENDING` -> `PAID` -> `CANCELLED`), hệ thống tự động kích hoạt các hành động: trừ tồn kho, gửi email hóa đơn, gửi SMS xác nhận.
+- **FR-05: Cập nhật trạng thái & Phát sự kiện tự động (Order Lifecycle & Event Dispatching):** Vòng đời đơn gồm `PENDING -> PAID` và `PENDING -> CANCELLED`. Khi đơn chuyển sang `PAID`, hệ thống tự động trừ tồn kho, gửi email hóa đơn, gửi SMS xác nhận. Khi đơn chuyển sang `CANCELLED`, cùng bộ Observer tự động gửi email/SMS thông báo huỷ; riêng tồn kho chỉ được hoàn lại cho đơn đã từng trừ kho (đã PAID), còn huỷ đơn `PENDING` không đụng tồn kho (tránh cộng ảo). Đơn đã `PAID` phải qua quy trình hoàn tiền trước khi huỷ.
 
 ### 3.2. Yêu cầu phi chức năng (Non-Functional Requirements - NFR)
 - **NFR-01 (Tính mở rộng - Extensibility):** Áp dụng nguyên lý OCP (Open/Closed Principle) - thêm mới cổng thanh toán, chính sách giảm giá, hoặc kênh thông báo chỉ bằng cách tạo class mới.
@@ -42,6 +42,31 @@ Mục tiêu của đề tài là áp dụng kiến trúc **Clean Architecture** 
 ---
 
 ## 4. SƠ ĐỒ USE CASE TỔNG QUÁT
+
+```mermaid
+flowchart LR
+    Customer(["👤 Khách hàng"])
+    Gateway(["🏦 Cổng Thanh toán<br/>VNPay / MoMo"])
+    Notifier(["📨 Dịch vụ Thông báo<br/>Email / SMS"])
+    Inventory(["📦 Hệ thống Kho"])
+    subgraph SYS["Hệ thống Quản lý Bán hàng & TMĐT"]
+        UC1(["UC-01<br/>Duyệt & Chọn sản phẩm"])
+        UC2(["UC-02<br/>Xây dựng Đơn hàng<br/>(Builder)"])
+        UC3(["UC-03<br/>Tính giá, Chiết khấu & Phí<br/>(Strategy + Decorator)"])
+        UC4(["UC-04<br/>Thanh toán Đa cổng<br/>(Factory + Adapter)"])
+        UC5(["UC-05<br/>Phát sự kiện trạng thái<br/>(Observer)"])
+    end
+    Customer --> UC1
+    Customer --> UC2
+    Customer --> UC4
+    UC2 -. include .-> UC3
+    UC4 -. triggers PAID .-> UC5
+    UC4 --> Gateway
+    UC5 --> Notifier
+    UC5 --> Inventory
+```
+
+<details><summary>Sơ đồ ASCII (bản dự phòng)</summary>
 
 ```
 +-------------------------------------------------------------------------------+
@@ -68,6 +93,8 @@ Mục tiêu của đề tài là áp dụng kiến trúc **Clean Architecture** 
 +-------------------------------------------------------------------------------+
 ```
 
+</details>
+
 ---
 
 ## 5. ĐẶC TẢ CHI TIẾT CÁC CA SỬ DỤNG CỐT LÕI
@@ -80,7 +107,7 @@ Mục tiêu của đề tài là áp dụng kiến trúc **Clean Architecture** 
   2. Hệ thống khởi tạo đối tượng `OrderBuilder`.
   3. Khách hàng nhập thông tin người nhận (Họ tên, SĐT, Địa chỉ).
   4. Khách hàng chọn thêm các dịch vụ bổ sung: Gói quà tặng (`withGiftWrap`), Bảo hiểm vận chuyển (`withInsurance`).
-  5. Khách hàng nhập mã giảm giá / hạng khách hàng.
+  5. Hệ thống xác định chính sách chiết khấu theo hạng khách hàng (`CustomerTier`) để áp dụng ở bước tính giá.
   6. Khách hàng xác nhận và hệ thống gọi `OrderBuilder.build()` để tạo thực thể `Order` hoàn chỉnh có tính toàn vẹn dữ liệu.
 - **Hậu điều kiện:** Đơn hàng được tạo ở trạng thái `PENDING`, sẵn sàng cho bước thanh toán.
 

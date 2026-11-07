@@ -1,0 +1,31 @@
+%% Class Diagram - Decorator Pattern
+classDiagram
+    class IOrderPricing {
+        <<interface>>
+        +calculateTotal() number
+        +getBreakdown() PriceBreakdown[]
+    }
+    class BaseOrderPricing {
+        -order: Order
+        +calculateTotal() number
+        +getBreakdown() PriceBreakdown[]
+    }
+    class OrderPricingDecorator {
+        <<abstract>>
+        #wrappee: IOrderPricing
+        +calculateTotal() number
+        +getBreakdown() PriceBreakdown[]
+    }
+    class GiftWrapDecorator {
+        -giftWrapFee: number
+        +calculateTotal() number
+    }
+    class ShippingInsuranceDecorator {
+        -insuranceFee: number
+        +calculateTotal() number
+    }
+    IOrderPricing <|.. BaseOrderPricing
+    IOrderPricing <|.. OrderPricingDecorator
+    OrderPricingDecorator o--> IOrderPricing : wraps
+    OrderPricingDecorator <|-- GiftWrapDecorator
+    OrderPricingDecorator <|-- ShippingInsuranceDecorator
