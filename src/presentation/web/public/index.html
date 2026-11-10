@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Commerce Design Patterns Live Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rubik:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Rubik', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+            },
+            pattern: {
+              creational: '#3b82f6',
+              structural: '#8b5cf6',
+              behavioral: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .pattern-pill {
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(0.995); }
+    }
+    .active-pipeline {
+      animation: pulse-slow 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950 flex flex-col">
+
+  <!-- TOP APP BAR -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i data-lucide="layers" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-heading font-bold text-lg text-white">E-Commerce Design Patterns</h1>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Clean Arch</span>
+          </div>
+          <p class="text-xs text-slate-400">Trực quan hóa 6 GoF Design Patterns & SOLID tại Presentation Web</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="btn-toggle-fault" onclick="toggleFaultSimulation()" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs font-medium text-slate-300 transition flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400" id="fault-indicator"></span>
+          <span id="fault-btn-text">Mô phỏng lỗi Observer: TẮT</span>
+        </button>
+
+        <button onclick="resetSystem()" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs font-medium text-slate-300 transition flex items-center space-x-1.5" title="Khôi phục số lượng tồn kho mặc định">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>Reset kho</span>
+        </button>
+
+        <a href="https://github.com/phamanhduc8577-hash/ecommerce-design-patterns" target="_blank" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm">
+          <i data-lucide="github" class="w-3.5 h-3.5"></i>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN 2-COLUMN VIEW -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- CỘT TRÁI: CỬA HÀNG TMĐT (STOREFRONT) [7 Cols] -->
+    <section class="lg:col-span-7 space-y-6">
+
+      <!-- THÔNG TIN KHÁCH HÀNG & HẠNG THÀNH VIÊN (STRATEGY HOOK) -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="user-check" class="w-5 h-5 text-indigo-400"></i>
+            <h2 class="font-heading font-semibold text-white">Khách hàng & Chiến lược Giảm giá</h2>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono">Strategy Pattern</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Tài khoản mua sắm:</label>
+            <select id="select-customer" onchange="onCustomerChange()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition">
+              <!-- Render động -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Thuật toán chiết khấu (Strategy):</label>
+            <select id="select-strategy" onchange="updatePreview()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-400 font-medium focus:outline-none focus:border-amber-500 transition">
+              <!-- Render động -->
+            </select>
+          </div>
+        </div>
+
+        <div id="customer-info-box" class="mt-3 p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
+          <span class="text-slate-400">Đặc quyền: <strong id="customer-tier-badge" class="text-indigo-300">VIP Member</strong></span>
+          <span class="text-slate-400">Hộp thư: <span id="customer-email" class="text-slate-300 font-mono">nam.tran@techcorp.vn</span></span>
+        </div>
+      </div>
+
+      <!-- DANH SÁCH SẢN PHẨM (BUILDER ITEM SELECTION) -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="shopping-bag" class="w-5 h-5 text-emerald-400"></i>
+            <h2 class="font-heading font-semibold text-white">Sản phẩm & Kiểm soát tồn kho</h2>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 font-mono">Builder Pattern</span>
+        </div>
+
+        <div id="product-list" class="space-y-3">
+          <!-- Render danh sách sản phẩm động -->
+        </div>
+      </div>
+
+      <!-- DỊCH VỤ GIÁ TRỊ GIA TĂNG (DECORATOR HOOK) -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-purple-400"></i>
+            <h2 class="font-heading font-semibold text-white">Dịch vụ bổ sung (Cộng dồn biểu phí)</h2>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 font-mono">Decorator Pattern</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="flex items-start p-3 bg-slate-900/60 border border-slate-800 hover:border-purple-500/50 rounded-xl cursor-pointer transition">
+            <input type="checkbox" id="check-giftwrap" onchange="updatePreview()" class="mt-1 w-4 h-4 text-purple-600 rounded bg-slate-800 border-slate-700 focus:ring-purple-500">
+            <div class="ml-3">
+              <span class="block text-sm font-medium text-slate-200">Gói quà cao cấp (+30.000₫)</span>
+              <span class="block text-xs text-slate-400 mt-0.5">Bọc hộp quà nhung, kèm thiệp chúc mừng dập nổi</span>
+            </div>
+          </label>
+
+          <label class="flex items-start p-3 bg-slate-900/60 border border-slate-800 hover:border-purple-500/50 rounded-xl cursor-pointer transition">
+            <input type="checkbox" id="check-insurance" onchange="updatePreview()" class="mt-1 w-4 h-4 text-purple-600 rounded bg-slate-800 border-slate-700 focus:ring-purple-500">
+            <div class="ml-3">
+              <span class="block text-sm font-medium text-slate-200">Bảo hiểm hàng hóa (+1% giá)</span>
+              <span class="block text-xs text-slate-400 mt-0.5">Đền bù 100% nếu bể vỡ, thất lạc lúc vận chuyển</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- CỔNG THANH TOÁN (FACTORY METHOD + ADAPTER HOOK) -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="credit-card" class="w-5 h-5 text-indigo-400"></i>
+            <h2 class="font-heading font-semibold text-white">Cổng thanh toán & Tích hợp SDK</h2>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono">Factory + Adapter</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="payment-methods-grid">
+          <!-- Render danh sách phương thức thanh toán -->
+        </div>
+      </div>
+
+      <!-- NÚT CHECKOUT CHÍNH -->
+      <div class="pt-2">
+        <button id="btn-checkout" onclick="performCheckout()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-heading font-bold text-base shadow-xl shadow-emerald-500/20 active:scale-[0.99] transition flex items-center justify-center space-x-3">
+          <i data-lucide="zap" class="w-5 h-5"></i>
+          <span>KÍCH HOẠT THANH TOÁN & QUAN SÁT LUỒNG 6 PATTERNS</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- CỘT PHẢI: LIVE PATTERN INSPECTOR & OBSERVER CONSOLE [5 Cols] -->
+    <aside class="lg:col-span-5 space-y-6">
+
+      <!-- PANEL 1: LIVE PRICING BREAKDOWN (DECORATOR + STRATEGY) -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl border-l-4 border-l-purple-500">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="receipt" class="w-5 h-5 text-purple-400"></i>
+            <h3 class="font-heading font-semibold text-white text-sm">Hóa đơn điện tử thời gian thực</h3>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">Decorator & Strategy</span>
+        </div>
+
+        <div id="pricing-breakdown-box" class="space-y-2 text-xs">
+          <!-- Breakdown render động -->
+        </div>
+
+        <div class="border-t border-slate-800 mt-3 pt-3 flex justify-between items-baseline">
+          <span class="text-xs text-slate-400 font-medium">Số tiền thực thu (Payable):</span>
+          <span id="final-payable-amount" class="font-heading font-bold text-xl text-emerald-400 font-mono">0₫</span>
+        </div>
+      </div>
+
+      <!-- PANEL 2: DESIGN PATTERNS EXECUTION PIPELINE -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="cpu" class="w-5 h-5 text-amber-400"></i>
+            <h3 class="font-heading font-semibold text-white text-sm">Trình trực quan hóa 6 GoF Patterns</h3>
+          </div>
+          <span class="text-xs text-slate-400">Trạng thái Runtime</span>
+        </div>
+
+        <div class="space-y-3 font-mono text-xs">
+          <!-- Pattern 1: Builder -->
+          <div id="step-builder" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 transition">
+            <div class="flex items-center justify-between text-blue-400 mb-1">
+              <span class="font-semibold">[1] Creational: Builder</span>
+              <span class="status-badge px-1.5 py-0.5 text-[10px] rounded bg-slate-800 text-slate-400">Sẵn sàng</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-sans">Dựng đơn hàng từng bước, gom nhóm SKU & chặn bán vượt tồn kho (Overselling).</p>
+          </div>
+
+          <!-- Pattern 2: Decorator -->
+          <div id="step-decorator" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 transition">
+            <div class="flex items-center justify-between text-purple-400 mb-1">
+              <span class="font-semibold">[2] Structural: Decorator</span>
+              <span class="status-badge px-1.5 py-0.5 text-[10px] rounded bg-slate-800 text-slate-400">Sẵn sàng</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-sans">Bọc động BaseOrderPricing với GiftWrap & ShippingInsurance tại runtime.</p>
+          </div>
+
+          <!-- Pattern 3: Strategy -->
+          <div id="step-strategy" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 transition">
+            <div class="flex items-center justify-between text-amber-400 mb-1">
+              <span class="font-semibold">[3] Behavioral: Strategy</span>
+              <span class="status-badge px-1.5 py-0.5 text-[10px] rounded bg-slate-800 text-slate-400">Sẵn sàng</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-sans">Hoán đổi linh hoạt thuật toán chiết khấu (VIP / Khuyến mãi bậc / Thông thường).</p>
+          </div>
+
+          <!-- Pattern 4 & 5: Factory & Adapter -->
+          <div id="step-factory-adapter" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 transition">
+            <div class="flex items-center justify-between text-indigo-400 mb-1">
+              <span class="font-semibold">[4,5] Factory Method + Adapter</span>
+              <span class="status-badge px-1.5 py-0.5 text-[10px] rounded bg-slate-800 text-slate-400">Sẵn sàng</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-sans">Factory khởi tạo Adapter phụ thuộc Port (DIP), SDK ngoài thực thi giao dịch.</p>
+          </div>
+
+          <!-- Pattern 6: Observer -->
+          <div id="step-observer" class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 transition">
+            <div class="flex items-center justify-between text-emerald-400 mb-1">
+              <span class="font-semibold">[6] Behavioral: Observer</span>
+              <span class="status-badge px-1.5 py-0.5 text-[10px] rounded bg-slate-800 text-slate-400">Sẵn sàng</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-sans">Phát sự kiện ORDER_PAID tới Inventory, Email, SMS với cơ chế Fault-Tolerant.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3: OBSERVER DISPATCH LOGS & HUỶ ĐƠN HÀNG -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="radio" class="w-5 h-5 text-emerald-400"></i>
+            <h3 class="font-heading font-semibold text-white text-sm">Nhật ký Observer & Lịch sử Đơn</h3>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Live Logs</span>
+        </div>
+
+        <div id="observer-logs-box" class="space-y-2.5 max-h-64 overflow-y-auto custom-scroll text-xs">
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400 text-center">
+            Chưa có giao dịch thanh toán nào được thực thi.
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
+      Học phần: Mẫu thiết kế cho phần mềm (020100138402) • HK1 2026-2027 • Clean Architecture & 6 GoF Patterns Demo
+    </div>
+  </footer>
+
+  <!-- SCRIPT LOGIC KẾT NỐI API -->
+  <script>
+    let appState = null;
+    let selectedCart = {}; // { productId: qty }
+
+    function formatVND(amount) {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    }
+
+    async function loadState() {
+      try {
+        const res = await fetch('/api/state');
+        appState = await res.json();
+        renderCustomers();
+        renderProducts();
+        renderPaymentMethods();
+        renderRecentOrders();
+        updateFaultButtonUI();
+        updatePreview();
+      } catch (err) {
+        console.error('Không thể tải state:', err);
+      }
+    }
+
+    function renderCustomers() {
+      const select = document.getElementById('select-customer');
+      select.innerHTML = appState.customers.map(c => `
+        <option value="${c.id}" ${c.tier === 'VIP' ? 'selected' : ''}>
+          ${c.fullName} (${c.tier})
+        </option>
+      `).join('');
+
+      const stratSelect = document.getElementById('select-strategy');
+      stratSelect.innerHTML = appState.strategies.map((s, idx) => `
+        <option value="${s.key}" ${idx === 1 ? 'selected' : ''}>${s.name} - ${s.desc}</option>
+      `).join('');
+
+      onCustomerChange();
+    }
+
+    function onCustomerChange() {
+      const customerId = document.getElementById('select-customer').value;
+      const c = appState.customers.find(item => item.id === customerId);
+      if (c) {
+        document.getElementById('customer-tier-badge').textContent = `${c.tier} Member`;
+        document.getElementById('customer-email').textContent = c.email;
+
+        // Gợi ý tự động Strategy theo hạng
+        const stratSelect = document.getElementById('select-strategy');
+        if (c.tier === 'VIP') {
+          stratSelect.value = 'VIP';
+        } else if (c.tier === 'GOLD' || c.tier === 'SILVER') {
+          stratSelect.value = 'HOLIDAY';
+        } else {
+          stratSelect.value = 'REGULAR';
+        }
+      }
+      updatePreview();
+    }
+
+    function renderProducts() {
+      const list = document.getElementById('product-list');
+      list.innerHTML = appState.products.map(p => {
+        const currentQty = selectedCart[p.id] || 0;
+        return `
+          <div class="flex items-center justify-between p-3.5 bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-xl transition">
+            <div class="flex-1 pr-3">
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-slate-200">${p.name}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">${p.sku}</span>
+              </div>
+              <div class="flex items-center space-x-3 mt-1 text-xs">
+                <span class="font-semibold text-emerald-400 font-mono">${formatVND(p.price)}</span>
+                <span class="text-slate-400">Kho: <strong class="${p.stockQuantity > 0 ? 'text-slate-300' : 'text-red-400 font-bold'}">${p.stockQuantity}</strong></span>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <button onclick="changeQty('${p.id}', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-sm transition disabled:opacity-30" ${currentQty === 0 ? 'disabled' : ''}>-</button>
+              <span class="w-8 text-center text-sm font-bold font-mono text-white">${currentQty}</span>
+              <button onclick="changeQty('${p.id}', 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-sm transition disabled:opacity-30" ${p.stockQuantity <= currentQty ? 'disabled' : ''}>+</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function changeQty(productId, delta) {
+      const p = appState.products.find(item => item.id === productId);
+      if (!p) return;
+      const current = selectedCart[productId] || 0;
+      const next = current + delta;
+      if (next < 0) return;
+      if (next > p.stockQuantity) {
+        alert(`Số lượng vượt quá tồn kho hiện có (${p.stockQuantity})!`);
+        return;
+      }
+      if (next === 0) {
+        delete selectedCart[productId];
+      } else {
+        selectedCart[productId] = next;
+      }
+      renderProducts();
+      updatePreview();
+    }
+
+    function renderPaymentMethods() {
+      const grid = document.getElementById('payment-methods-grid');
+      grid.innerHTML = appState.paymentMethods.map((m, idx) => `
+        <label class="flex items-start p-3 bg-slate-900/60 border border-slate-800 hover:border-indigo-500/50 rounded-xl cursor-pointer transition">
+          <input type="radio" name="paymentMethod" value="${m.key}" ${idx === 0 ? 'checked' : ''} class="mt-1 w-4 h-4 text-indigo-600 bg-slate-800 border-slate-700 focus:ring-indigo-500">
+          <div class="ml-3">
+            <span class="block text-sm font-medium text-slate-200">${m.name}</span>
+            <span class="block text-[11px] text-indigo-400 font-mono mt-0.5">${m.type} (${m.provider})</span>
+          </div>
+        </label>
+      `).join('');
+    }
+
+    async function updatePreview() {
+      const items = Object.entries(selectedCart).map(([productId, quantity]) => ({ productId, quantity }));
+      const customerId = document.getElementById('select-customer')?.value;
+      const strategyKey = document.getElementById('select-strategy')?.value;
+      const withGiftWrap = document.getElementById('check-giftwrap')?.checked;
+      const withInsurance = document.getElementById('check-insurance')?.checked;
+
+      const breakdownBox = document.getElementById('pricing-breakdown-box');
+      const finalPayable = document.getElementById('final-payable-amount');
+
+      if (items.length === 0) {
+        breakdownBox.innerHTML = `
+          <div class="p-3 text-center text-slate-500 bg-slate-900/40 rounded-xl">
+            Vui lòng chọn ít nhất 1 sản phẩm để bắt đầu tính toán phí và chiết khấu.
+          </div>
+        `;
+        finalPayable.textContent = '0₫';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items, customerId, withGiftWrap, withInsurance, strategyKey })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        breakdownBox.innerHTML = data.pricingBreakdown.map(b => `
+          <div class="flex justify-between items-center text-slate-300">
+            <span>${b.label}</span>
+            <span class="font-mono font-medium">${formatVND(b.amount)}</span>
+          </div>
+        `).join('') + `
+          <div class="flex justify-between items-center text-emerald-400 font-medium pt-1 border-t border-slate-800">
+            <span>Chiết khấu (${data.discountDetails.description}):</span>
+            <span class="font-mono">-${formatVND(data.discountDetails.discountAmount)}</span>
+          </div>
+        `;
+
+        finalPayable.textContent = formatVND(data.finalPayableAmount);
+      } catch (err) {
+        console.error('Lỗi tính preview:', err);
+      }
+    }
+
+    async function performCheckout() {
+      const items = Object.entries(selectedCart).map(([productId, quantity]) => ({ productId, quantity }));
+      if (items.length === 0) {
+        alert('Giỏ hàng trống! Vui lòng chọn sản phẩm.');
+        return;
+      }
+
+      const customerId = document.getElementById('select-customer').value;
+      const strategyKey = document.getElementById('select-strategy').value;
+      const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+      const withGiftWrap = document.getElementById('check-giftwrap').checked;
+      const withInsurance = document.getElementById('check-insurance').checked;
+
+      const btn = document.getElementById('btn-checkout');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>Đang xử lý thanh toán qua 6 Patterns...</span>`;
+      lucide.createIcons();
+
+      // Highlight trực quan pipeline
+      highlightPipeline();
+
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items,
+            customerId,
+            withGiftWrap,
+            withInsurance,
+            strategyKey,
+            paymentMethod,
+            specialNotes: 'Giao hàng hỏa tốc trong 2h'
+          })
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error);
+        }
+
+        // Reset cart sau khi thành công
+        selectedCart = {};
+        await loadState();
+
+        showCheckoutSuccessAlert(data.checkoutResult);
+      } catch (err) {
+        alert('Lỗi checkout: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="zap" class="w-5 h-5"></i><span>KÍCH HOẠT THANH TOÁN & QUAN SÁT LUỒNG 6 PATTERNS</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    function highlightPipeline() {
+      const steps = ['step-builder', 'step-decorator', 'step-strategy', 'step-factory-adapter', 'step-observer'];
+      steps.forEach((id, idx) => {
+        setTimeout(() => {
+          const el = document.getElementById(id);
+          el.classList.add('border-emerald-500', 'bg-emerald-950/30', 'active-pipeline');
+          const badge = el.querySelector('.status-badge');
+          if (badge) {
+            badge.textContent = 'Đang chạy';
+            badge.className = 'status-badge px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-400 font-semibold';
+          }
+          setTimeout(() => {
+            el.classList.remove('active-pipeline');
+            if (badge) {
+              badge.textContent = 'Hoàn tất ✓';
+              badge.className = 'status-badge px-1.5 py-0.5 text-[10px] rounded bg-emerald-500 text-slate-950 font-bold';
+            }
+          }, 800);
+        }, idx * 250);
+      });
+    }
+
+    function showCheckoutSuccessAlert(result) {
+      let alertMsg = `🎉 THANH TOÁN THÀNH CÔNG ĐƠN HÀNG [${result.orderId}]\n\n` +
+        `• Thực thu: ${formatVND(result.finalAmount)}\n` +
+        `• Cổng: ${result.paymentMethod} (Mã GD: ${result.transactionId})\n` +
+        `• Observer đã phát:\n` +
+        result.observerResults.map(o => `   - ${o.observerName}: ${o.success ? 'THÀNH CÔNG' : 'LỖI (' + o.message + ')'}`).join('\n');
+
+      if (result.hasObserverFailure) {
+        alertMsg += `\n\n⚠️ CẢNH BÁO FAULT-TOLERANCE: Đơn thu tiền thành công nhưng có observer gặp lỗi (${result.failedObservers.join(', ')}). Hệ thống không crash!`;
+      }
+
+      alert(alertMsg);
+    }
+
+    function renderRecentOrders() {
+      const box = document.getElementById('observer-logs-box');
+      if (!appState.recentOrders || appState.recentOrders.length === 0) {
+        box.innerHTML = `<div class="p-3 text-center text-slate-500 bg-slate-900/40 rounded-xl">Chưa có giao dịch thanh toán nào được thực thi.</div>`;
+        return;
+      }
+
+      box.innerHTML = appState.recentOrders.map(ord => {
+        const isPaid = ord.status === 'PAID';
+        const isCancelled = ord.status === 'CANCELLED';
+
+        return `
+          <div class="p-3.5 bg-slate-900/80 border ${ord.hasObserverFailure ? 'border-amber-500/50' : 'border-slate-800'} rounded-xl space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="font-mono font-bold text-white text-xs">${ord.orderId}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold ${isPaid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">${ord.status}</span>
+              </div>
+              <span class="text-[11px] text-slate-400 font-mono">${ord.createdAt}</span>
+            </div>
+
+            <div class="text-xs text-slate-300 flex justify-between">
+              <span>${ord.customerName} (${ord.paymentMethod})</span>
+              <span class="font-mono font-bold text-emerald-400">${formatVND(ord.finalAmount)}</span>
+            </div>
+
+            <!-- Kết quả Observers -->
+            <div class="pt-1 border-t border-slate-800/80 space-y-1">
+              <div class="text-[11px] text-slate-400 font-medium">Observer Dispatches:</div>
+              ${ord.observerResults.map(obs => `
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400 truncate max-w-[200px]">${obs.observerName}</span>
+                  <span class="${obs.success ? 'text-emerald-400' : 'text-amber-400 font-semibold'}">${obs.success ? '✔ Thành công' : '⚠ ' + obs.message}</span>
+                </div>
+              `).join('')}
+            </div>
+
+            ${isPaid ? `
+              <div class="pt-2 flex justify-end">
+                <button onclick="cancelOrder('${ord.orderId}')" class="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition flex items-center space-x-1">
+                  <i data-lucide="x-circle" class="w-3 h-3"></i>
+                  <span>Huỷ đơn & Hoàn kho (Observer Pattern)</span>
+                </button>
+              </div>
+            ` : ''}
+
+            ${isCancelled ? `
+              <div class="text-[11px] text-red-400 bg-red-950/30 p-2 rounded-lg border border-red-900/30">
+                Đã huỷ: ${ord.cancellationReason || 'Yêu cầu huỷ'} (Tồn kho đã được khôi phục)
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    async function cancelOrder(orderId) {
+      const reason = prompt('Nhập lý do huỷ đơn hàng:', 'Đổi ý không mua nữa');
+      if (!reason) return;
+
+      try {
+        const res = await fetch('/api/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, reason })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        alert(data.message);
+        await loadState();
+      } catch (err) {
+        alert('Lỗi huỷ đơn: ' + err.message);
+      }
+    }
+
+    async function toggleFaultSimulation() {
+      try {
+        const res = await fetch('/api/toggle-fault', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message);
+        await loadState();
+      } catch (err) {
+        alert('Lỗi toggle: ' + err.message);
+      }
+    }
+
+    function updateFaultButtonUI() {
+      const isFailing = appState.faultSimulationActive;
+      const indicator = document.getElementById('fault-indicator');
+      const text = document.getElementById('fault-btn-text');
+
+      if (isFailing) {
+        indicator.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+        text.innerHTML = '<span class="text-amber-400 font-bold">Mô phỏng lỗi: ĐANG BẬT</span>';
+      } else {
+        indicator.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        text.textContent = 'Mô phỏng lỗi Observer: TẮT';
+      }
+    }
+
+    async function resetSystem() {
+      if (!confirm('Bạn có chắc muốn khôi phục kho hàng về số lượng ban đầu?')) return;
+      try {
+        const res = await fetch('/api/reset', { method: 'POST' });
+        const data = await res.json();
+        selectedCart = {};
+        alert(data.message);
+        await loadState();
+      } catch (err) {
+        alert('Lỗi reset: ' + err.message);
+      }
+    }
+
+    // Khởi chạy khi load trang
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      // Mặc định chọn 1 laptop để có sẵn dữ liệu trực quan
+      selectedCart['PROD-01'] = 1;
+      setTimeout(updatePreview, 300);
+    });
+  </script>
+</body>
+</html>

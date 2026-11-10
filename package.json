@@ -5,6 +5,10 @@
   "main": "dist/demo-runner.js",
   "scripts": {
     "start": "ts-node src/demo-runner.ts",
+    "start:web": "ts-node src/presentation/web/web-server.ts",
+    "web": "ts-node src/presentation/web/web-server.ts",
+    "web:start": "powershell -ExecutionPolicy Bypass -File scripts/start-web-hidden.ps1",
+    "web:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-web.ps1",
     "benchmark": "ts-node scripts/benchmark.ts",
     "generate:docx": "ts-node scripts/generate-report-docx.ts",
     "build": "tsc",

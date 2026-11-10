@@ -30,11 +30,22 @@ Dự án cài đặt hoàn chỉnh một hệ thống Thương mại điện t�
 npm install
 ```
 
-### Bước 2: Chạy chương trình Demo tương tác có màu sắc
+### Bước 2: Chạy chương trình Demo tương tác có màu sắc (CLI Console)
 ```bash
 npm start
 ```
 *(Chương trình hỗ trợ 2 chế độ: Quick Scenario tự động hoặc Interactive Q&A Session chọn linh hoạt khách hàng, sản phẩm, chiến lược chiết khấu, cổng thanh toán và quan sát phản ứng hệ thống trực tiếp).*
+
+### Bước 2b: Chạy giao diện Web trực quan hóa 6 Design Patterns (Web Live Visualizer)
+```bash
+npm run web
+# hoặc:
+npm run start:web
+```
+Mở trình duyệt tại **`http://localhost:3333`** để trải nghiệm giao diện Web trực quan:
+- **Cột trái (Storefront):** Chọn sản phẩm, tùy biến dịch vụ giá trị gia tăng (Decorator), chọn hạng khách & thuật toán chiết khấu (Strategy), chọn cổng thanh toán (Factory + Adapter).
+- **Cột phải (Pattern Inspector):** Trực quan hóa luồng dữ liệu thời gian thực qua 6 GoF Design Patterns, bóc tách hóa đơn điện tử động, hiển thị trạng thái phát sự kiện Observer và nút huỷ đơn hoàn kho.
+- **Mô phỏng lỗi:** Tích hợp nút bật/tắt mô phỏng lỗi mạng để kiểm chứng tính năng **Fault-Tolerant Observer** trực tiếp trên giao diện.
 
 ### Bước 3: Chạy bộ kiểm thử tự động (Unit Test & Integration Test)
 ```bash
@@ -70,6 +81,8 @@ npm run benchmark
 │   ├── application/          # Lớp Application (OrderCheckoutService)
 │   ├── domain/               # Lớp Domain (Entities & 6 Design Patterns, Inventory observer)
 │   ├── infrastructure/       # Lớp Infrastructure (Third-party SDKs, Email/SMS observers)
+│   ├── presentation/         # Lớp Presentation (Web REST API server & Web SPA)
+│   │   └── web/              # Web Server & Single Page App trực quan hóa Patterns
 │   └── demo-runner.ts        # Interactive CLI Runner phục vụ ngày vấn đáp
 └── tests/                    # Toàn bộ Test Suites (Jest)
     ├── integration/          # Integration Test luồng Checkout toàn diện
